@@ -58,9 +58,11 @@ const meReady = api("/api/me").then((m) => {
 let poll = null;
 function route() {
   clearInterval(poll); poll = null;
-  const [tab] = (location.hash.slice(1) || "overview").split("/");
-  document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
-  const pages = { overview, connectors, jobs, settings };
+  const [tab, arg] = (location.hash.slice(1) || "overview").split("/");
+  const navTab = { doc: "intel", entity: "entities", add: "intel" }[tab] || tab;
+  document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === navTab));
+  const pages = { overview, intel, doc: () => docPage(arg), entities, entity: () => entityPage(arg), add, sources,
+    connectors, jobs, settings };
   const token = ++navToken;
   const view = h("div");
   main = view;
@@ -70,13 +72,172 @@ function route() {
 window.addEventListener("hashchange", route);
 window.addEventListener("unhandledrejection", (e) => { if (e.reason && e.reason.shown) e.preventDefault(); });
 
+// ---------------- shared bits ----------------
+const TYPE_ICON = { actor: "account-group", malware: "bug", tool: "hammer-wrench", campaign: "flag-variant", technique: "chess-knight",
+  cve: "shield-alert-outline", sector: "domain", country: "earth", ipv4: "ip-network", ipv6: "ip-network", domain: "web",
+  url: "link-variant", email: "email-outline", md5: "pound", sha1: "pound", sha256: "pound" };
+const typeBadge = (t) => h("span", { class: "badge t-" + t }, icon(TYPE_ICON[t] || "tag"), t);
+const entLink = (id, label, t) => h("a", { href: `#entity/${id}` }, t ? [typeBadge(t), " "] : null, label);
+const ctxBadge = (c) => c ? h("span", { class: "badge c-" + c }, c) : null;
+const statusBadge = (s) => h("span", { class: "badge st-" + s }, s);
+const kpi = (n, l, href) => h(href ? "a" : "div", { class: "kpi-card", href }, h("b", {}, n), h("span", { class: "muted small" }, l));
+const methodBadge = (m) => h("span", { class: "badge small m-" + m.split(" ")[0].replace("+", "-") }, m);
+
 // ---------------- Overview ----------------
 async function overview() {
-  const s = await api("/api/status");
-  const kpi = (n, l) => h("div", { class: "kpi-card" }, h("b", {}, n), h("span", { class: "muted small" }, l));
-  main.append(h("div", { class: "kpi-row" }, kpi(s.version, "version"), kpi(s.connectors, "connectors"), kpi(s.auth_mode, "login mode")));
+  const [s, st] = await Promise.all([api("/api/status"), api("/api/intel/stats")]);
+  const e = st.entities || {};
+  const sum = (...ks) => ks.reduce((a, k) => a + (e[k] || 0), 0);
+  const docs = Object.values(st.documents || {}).reduce((a, b) => a + b, 0);
+  main.append(h("div", { class: "kpi-row" }, kpi(docs, "documents", "#intel"),
+    kpi(sum("ipv4", "ipv6", "domain", "url", "email", "md5", "sha1", "sha256"), "indicators", "#entities"),
+    kpi(sum("actor", "campaign"), "actors and campaigns", "#entities"), kpi(sum("malware", "tool"), "malware and tools", "#entities"),
+    kpi(e.cve || 0, "CVEs", "#entities"), kpi(st.relations, "relations", "#entities")));
+  const recent = await api("/api/documents?limit=8");
+  main.append(section("Latest documents", "newspaper-variant-outline", recent.length ? docTable(recent)
+    : h("p", { class: "muted" }, "Nothing collected yet. Add sources in config.yaml (sources:), or add a report.", " ",
+      h("a", { href: "#add" }, "Add a report"))));
   main.append(section("Models", "brain", h("table", {}, h("tbody", {}, Object.entries(s.roles).map(([r, c]) =>
     h("tr", {}, h("td", {}, r), h("td", {}, c.provider || "ollama"), h("td", { class: "muted" }, c.model || "provider default")))))));
+}
+
+// ---------------- Intel: documents ----------------
+function docTable(rows) {
+  return h("table", { class: "wrap cards" }, h("thead", {}, h("tr", {}, ["Collected", "Title", "Source", "Status"].map((x) => h("th", {}, x)))),
+    h("tbody", {}, rows.map((d) => h("tr", {}, h("td", { class: "small muted" }, when(d.fetched)),
+      h("td", {}, h("a", { href: `#doc/${d.id}` }, d.title || "(untitled)"), d.summary ? h("div", { class: "muted small clamp" }, d.summary) : null,
+        d.review ? h("div", { class: "warn small" }, icon("alert-outline"), " ", d.review) : null),
+      h("td", { class: "small" }, d.source), h("td", {}, h("span", { class: "badge st-" + d.status }, d.status), " ", d.method ? methodBadge(d.method) : null)))));
+}
+
+async function intel() {
+  const q = h("input", { class: "grow", placeholder: "Search titles and text" });
+  const status = h("select", {}, ["", "new", "extracted", "error"].map((x) => h("option", { value: x }, x || "any status")));
+  const box = h("div");
+  let offset = 0;
+  const load = async () => {
+    const rows = await api(`/api/documents?limit=50&offset=${offset}&q=${encodeURIComponent(q.value)}&status=${status.value}`);
+    fill(box, rows.length ? docTable(rows) : h("p", { class: "muted" }, "No documents."),
+      h("div", { class: "row" }, offset > 0 && h("button", { class: "ghost", onclick: () => { offset = Math.max(0, offset - 50); load(); } }, icon("chevron-left"), "Newer"),
+        rows.length === 50 && h("button", { class: "ghost", onclick: () => { offset += 50; load(); } }, "Older", icon("chevron-right"))));
+  };
+  q.addEventListener("keydown", (e) => { if (e.key === "Enter") { offset = 0; load(); } });
+  status.addEventListener("change", () => { offset = 0; load(); });
+  main.append(section("Intel", "newspaper-variant-outline", h("div", { class: "row" }, q, status,
+    h("a", { href: "#add", "data-need": "op" }, h("button", {}, icon("plus"), "Add"))), box));
+  await load();
+}
+
+async function docPage(id) {
+  const d = await api(`/api/documents/${id}`);
+  const byType = {};
+  d.mentions.forEach((m) => { (byType[m.type] = byType[m.type] || new Map()).set(m.entity_id, m); });
+  const ctx = {};
+  d.mentions.forEach((m) => { if (m.context) ctx[m.entity_id] = m.context; });
+  main.append(section(d.title || "Document", "file-document-outline",
+    h("div", { class: "small muted" }, `${d.source} | ${d.kind} | collected ${when(d.fetched)}`, d.published ? ` | published ${d.published}` : ""),
+    d.url ? h("div", { class: "small" }, h("a", { href: d.url, rel: "noopener noreferrer", target: "_blank" }, d.url)) : null,
+    h("div", { class: "row" }, h("span", { class: "badge st-" + d.status }, d.status), d.method ? methodBadge(d.method) : null,
+      h("button", { "data-need": "op", class: "ghost", onclick: async () => { await post(`/api/documents/${id}/process`); toast("Processing; refresh in a moment."); } }, icon("refresh"), "Process again")),
+    d.review ? h("p", { class: "warn" }, icon("alert-outline"), " ", d.review) : null,
+    d.error ? h("p", { class: "bad small" }, d.error) : null,
+    d.summary ? h("p", {}, d.summary, h("span", { class: "muted small" }, "  (model summary)")) : null));
+  const groups = Object.entries(byType).sort();
+  main.append(section("Found in this document", "tag-multiple-outline", groups.length ? groups.map(([t, m]) => h("div", { class: "found" },
+    h("h3", {}, typeBadge(t), ` ${m.size}`),
+    h("table", { class: "wrap cards" }, h("tbody", {}, [...m.values()].slice(0, 300).map((x) => h("tr", {},
+      h("td", { class: "val" }, entLink(x.entity_id, x.display)), h("td", {}, ctxBadge(ctx[x.entity_id])),
+      h("td", { class: "small muted" }, x.snippet ? `"${x.snippet}"` : ""), h("td", {}, methodBadge(x.method))))))))
+    : h("p", { class: "muted" }, "Nothing extracted.")));
+  if (d.relations.length) {
+    main.append(section("Relations", "graph-outline", h("table", { class: "wrap cards" }, h("tbody", {}, d.relations.map((r) => h("tr", {},
+      h("td", {}, entLink(r.src, r.src_display)), h("td", {}, h("b", {}, r.rel.replace(/_/g, " "))), h("td", {}, entLink(r.dst, r.dst_display)),
+      h("td", { class: "small muted" }, r.snippet ? `"${r.snippet}"` : "")))))));
+  }
+  main.append(section("Text", "text-long", h("details", {}, h("summary", {}, "Show the collected text"), h("pre", {}, d.text))));
+}
+
+// ---------------- Entities ----------------
+async function entities() {
+  const types = ["", "actor", "campaign", "malware", "tool", "technique", "cve", "sector", "country", "ipv4", "ipv6", "domain", "url", "email", "sha256", "sha1", "md5"];
+  const t = h("select", {}, types.map((x) => h("option", { value: x }, x || "all types")));
+  const q = h("input", { class: "grow", placeholder: "Search values and names" });
+  const order = h("select", {}, [["last_seen", "recently seen"], ["seen", "most seen"], ["first_seen", "newest"], ["confidence", "confidence"]].map(([v, l]) => h("option", { value: v }, l)));
+  const box = h("div");
+  const load = async () => {
+    const rows = await api(`/api/entities?limit=200&type=${t.value}&q=${encodeURIComponent(q.value)}&order=${order.value}`);
+    fill(box, rows.length ? h("table", { class: "wrap cards" }, h("thead", {}, h("tr", {}, ["Type", "Value", "Seen", "First", "Last", "Conf."].map((x) => h("th", {}, x)))),
+      h("tbody", {}, rows.map((e) => h("tr", {}, h("td", {}, typeBadge(e.type)), h("td", { class: "val" }, h("a", { href: `#entity/${e.id}` }, e.display)),
+        h("td", {}, e.seen_count), h("td", { class: "small muted" }, when(e.first_seen)), h("td", { class: "small muted" }, when(e.last_seen)), h("td", {}, e.confidence)))))
+      : h("p", { class: "muted" }, "Nothing found."));
+  };
+  [t, order].forEach((x) => x.addEventListener("change", load));
+  q.addEventListener("keydown", (e) => { if (e.key === "Enter") load(); });
+  main.append(section("Entities", "tag-multiple-outline", h("div", { class: "row" }, t, q, order), box));
+  await load();
+}
+
+async function entityPage(id) {
+  const e = await api(`/api/entities/${id}`);
+  const a = e.attack;
+  main.append(section(e.display, TYPE_ICON[e.type] || "tag",
+    h("div", { class: "row" }, typeBadge(e.type), statusBadge(e.status), e.ref ? h("span", { class: "badge" }, "ATT&CK " + e.ref) : null,
+      e.tags.map((x) => h("span", { class: "badge" }, x))),
+    h("div", { class: "small muted" }, `seen ${e.seen_count} times | first ${when(e.first_seen)} | last ${when(e.last_seen)} | confidence ${e.confidence}`,
+      e.expires ? ` | expires ${e.expires.slice(0, 10)}` : ""),
+    e.note ? h("p", { class: "small" }, e.note) : null,
+    h("div", { class: "row", "data-need": "op" }, [["active", "check"], ["false_positive", "close-circle-outline"], ["allowlisted", "shield-check-outline"]].map(([st, ic]) =>
+      e.status !== st && h("button", { class: "ghost", onclick: async () => { const note = st === "active" ? "" : (prompt("Note (why)") || ""); await post(`/api/entities/${id}/status`, { status: st, note }); route(); } }, icon(ic), "Mark " + st.replace("_", " "))))));
+  if (a && a.n) {
+    main.append(section("Known from ATT&CK", "chess-knight", a.a && a.a.length ? h("p", { class: "small" }, "Also called: ", a.a.join(", ")) : null,
+      a.tech && a.tech.length ? h("details", {}, h("summary", {}, `${a.tech.length} techniques`), h("ul", { class: "small" }, a.tech.map((x) => h("li", {}, `${x.id} ${x.name}`)))) : null,
+      a.sw && a.sw.length ? h("details", {}, h("summary", {}, `${a.sw.length} software`), h("p", { class: "small" }, a.sw.map((x) => x.name).join(", "))) : null));
+  } else if (a && a.name) {
+    main.append(section("ATT&CK", "chess-knight", h("p", {}, `${a.id} ${a.name}`, h("span", { class: "muted small" }, "  " + a.tactics.join(", ")),
+      a.replaced ? h("div", { class: "small muted" }, `${a.replaced} was retired and replaced by ${a.id}`) : null)));
+  }
+  if (e.relations.length) {
+    main.append(section("Relations", "graph-outline", h("table", { class: "wrap cards" }, h("tbody", {}, e.relations.map((r) => h("tr", {},
+      h("td", {}, r.src === e.id ? h("b", {}, r.src_display) : entLink(r.src, r.src_display, r.src_type)), h("td", {}, r.rel.replace(/_/g, " ")),
+      h("td", {}, r.dst === e.id ? h("b", {}, r.dst_display) : entLink(r.dst, r.dst_display, r.dst_type)),
+      h("td", { class: "small muted" }, r.snippet ? `"${r.snippet}" ` : "", h("a", { href: `#doc/${r.document_id}` }, r.title))))))));
+  }
+  main.append(section("Where it was found", "file-search-outline", e.mentions.length ? h("table", { class: "wrap cards" }, h("tbody", {}, e.mentions.map((m) => h("tr", {},
+    h("td", {}, h("a", { href: `#doc/${m.document_id}` }, m.title), h("div", { class: "small muted" }, m.source)),
+    h("td", { class: "small" }, m.snippet ? `"${m.snippet}"` : ""), h("td", {}, methodBadge(m.method), " ", ctxBadge(m.context)))))) : h("p", { class: "muted" }, "No mentions.")));
+}
+
+// ---------------- Add ----------------
+async function add() {
+  const text = h("textarea", { placeholder: "Paste a report, advisory or email text. Indicators may be defanged (hxxp, [.])." });
+  const title = h("input", { class: "grow", placeholder: "Title (optional)" });
+  const url = h("input", { class: "grow", placeholder: "Address of a public page or PDF" });
+  const values = h("textarea", { placeholder: "One indicator per line" });
+  const stix = h("input", { type: "file", accept: ".json,application/json" });
+  const done = (r) => { toast(r.new === false ? "Already stored." : "Added; extraction is running."); if (r.id) location.hash = `#doc/${r.id}`; };
+  main.append(section("Add a report", "file-document-plus-outline", text, h("div", { class: "row" }, title,
+    h("button", { onclick: async () => done(await post("/api/documents", { text: text.value, title: title.value })) }, icon("plus"), "Add text"))));
+  main.append(section("Add from a URL", "link-variant", h("div", { class: "row" }, url,
+    h("button", { onclick: async (e) => { e.target.disabled = true; try { done(await post("/api/documents", { url: url.value })); } finally { e.target.disabled = false; } } }, icon("download"), "Fetch"))));
+  main.append(section("Add indicators", "format-list-bulleted", values, h("div", { class: "row" },
+    h("button", { onclick: async () => { const r = await post("/api/values", { values: values.value.split(/\s+/).filter(Boolean) }); toast(`${r.values} added, ${r.skipped} skipped`); } }, icon("plus"), "Add indicators"))));
+  main.append(section("Import a STIX bundle", "code-json", h("div", { class: "row" }, stix,
+    h("button", { onclick: async () => { const f = stix.files[0]; if (!f) return toast("Choose a file."); let b;
+      try { b = JSON.parse(await f.text()); } catch (e) { return toast("Not valid JSON."); }
+      const r = await post("/api/import/stix", b); toast(`${r.indicators} indicators, ${r.entities} entities, ${r.relations} relations`); location.hash = `#doc/${r.document_id}`; } }, icon("upload"), "Import"))));
+}
+
+// ---------------- Sources ----------------
+async function sources() {
+  const rows = await api("/api/sources");
+  main.append(section("Sources", "rss", h("p", { class: "muted small" }, "Feeds, pages, indicator lists and connector pulls, configured in config.yaml (sources:). Each new item is stored once and extracted."),
+    rows.length ? h("table", { class: "wrap cards" }, h("thead", {}, h("tr", {}, ["Name", "Kind", "Every", "Last pull", "Documents", ""].map((x) => h("th", {}, x)))),
+      h("tbody", {}, rows.map((s) => h("tr", {}, h("td", {}, h("b", {}, s.name), h("div", { class: "small muted" }, s.url || `${s.connector}/${s.tool}`)),
+        h("td", {}, s.kind || "feed"), h("td", {}, s.interval_minutes ? `${s.interval_minutes} min` : "by hand"),
+        h("td", { class: "small" }, when(s.state.last_pull) || "never", s.state.last_error ? h("div", { class: "bad small" }, s.state.last_error) : null),
+        h("td", {}, s.state.documents || 0),
+        h("td", {}, h("button", { "data-need": "op", class: "ghost", onclick: async () => { const r = await post(`/api/sources/${s.name}/pull`); toast("Pull started (job " + r.job_id + ")."); } }, icon("download"), "Pull now"))))))
+      : h("p", { class: "muted" }, "No sources yet. Add them under sources: in config.yaml; see docs/collection.md.")));
 }
 
 // ---------------- Connectors ----------------

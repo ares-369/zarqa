@@ -131,12 +131,20 @@ def _check_host(url: str, allow_private: bool) -> str | None:
     return first_ip
 
 
-def fetch_url(url: str, *, allow_private: bool = False, session=None, timeout: float = 30) -> dict:
+def fetch_url(url: str, *, allow_private: bool = False, session=None, timeout: float = 30,
+              headers: dict | None = None, want_raw: bool = False) -> dict:
+    """Fetch a URL safely. ``want_raw``: also return the undecoded-to-text body (for lists and JSON);
+    ``headers``: extra request headers (for example a feed's API key). Headers are not sent again to a
+    different host after a redirect."""
     s = session or requests.Session()
+    first_host = urlparse(url).hostname
     for _ in range(6):
         pinned_ip = _check_host(url, allow_private)
         with _pin_host(urlparse(url).hostname, pinned_ip):
-            r = s.get(url, timeout=timeout, allow_redirects=False, stream=True, headers={"User-Agent": "zarqa"})
+            hdrs = {"User-Agent": "zarqa"}
+            if headers and urlparse(url).hostname == first_host:
+                hdrs.update(headers)
+            r = s.get(url, timeout=timeout, allow_redirects=False, stream=True, headers=hdrs)
         if r.status_code in (301, 302, 303, 307, 308) and r.headers.get("Location"):
             url = urljoin(url, r.headers["Location"])
             r.close()
@@ -153,6 +161,8 @@ def fetch_url(url: str, *, allow_private: bool = False, session=None, timeout: f
             raise FetchError("document is larger than 15 MB")
     ctype = r.headers.get("Content-Type", "").lower()
     raw = data.decode(r.encoding or "utf-8", "replace") if "pdf" not in ctype and data[:5] != b"%PDF-" else ""
+    if want_raw and raw:
+        return {"url": url, "title": "", "text": raw[:MAX_TEXT], "raw": raw, "content_type": ctype}
     if raw.lstrip()[:200].lower().startswith(("<?xml", "<rss", "<feed")):
         return {"url": url, "title": "", "text": raw[:MAX_TEXT], "raw": raw[:MAX_BYTES]}
     if "pdf" in ctype or data[:5] == b"%PDF-":

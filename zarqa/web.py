@@ -19,10 +19,16 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
     app = Flask(__name__, static_folder="static", template_folder="templates")
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)  # type: ignore[method-assign]
     app.json.sort_keys = False                     # keep roles and settings in their config order
+    app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024    # pasted reports and STIX bundles
     init_auth(app, cfg)
     cfg.data_dir.mkdir(parents=True, exist_ok=True)
     jobs = JobManager.from_config(cfg)
     app.extensions["zarqa_jobs"] = jobs
+    if start_scheduler:
+        from .scheduler import Scheduler
+        sched = Scheduler(get_config, jobs)
+        sched.start()
+        app.extensions["zarqa_scheduler"] = sched
 
     @app.after_request
     def _security_headers(resp):
@@ -127,6 +133,147 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
     @app.route("/api/audit/verify")
     def audit_verify():
         return jsonify(hub().audit.verify())
+
+    # ---- intel: sources, documents, entities ----
+    def kstore():
+        from .intel.store import store_for
+        return store_for(get_config())
+
+    def actor():
+        return str(getattr(g, "zarqa_user", "") or "local")
+
+    def _int(name, default, lo=0, hi=1000):
+        try:
+            return max(lo, min(hi, int(request.args.get(name, default))))
+        except ValueError:
+            return default
+
+    def _process_job(ids, use_model=None):
+        return jobs.submit("process", {"documents": ids[:20]}, None, task="process",
+                           params={"document_ids": ids, "use_model": use_model}, deduplicate=False)
+
+    @app.route("/api/intel/stats")
+    def intel_stats():
+        from .intel import attack
+        return jsonify({**kstore().stats(), "attack_version": attack.version()})
+
+    @app.route("/api/sources")
+    def sources():
+        from .collect.collector import sources_from
+        st = kstore().source_state()
+        return jsonify([{**{k: v for k, v in s.items() if k not in ("headers_env", "arguments")},
+                         "state": st.get(s["name"], {})} for s in sources_from(get_config())])
+
+    @app.route("/api/sources/<name>/pull", methods=["POST"])
+    def source_pull(name):
+        from .collect.collector import sources_from
+        if name not in {s["name"] for s in sources_from(get_config())}:
+            return jsonify({"error": "no such source"}), 404
+        jid = jobs.submit("pull", {"source": name}, None, task="pull", params={"source": name, "actor": actor()})
+        return jsonify({"job_id": jid})
+
+    @app.route("/api/documents", methods=["GET", "POST"])
+    def documents():
+        st = kstore()
+        if request.method == "GET":
+            mr = request.args.get("min_relevance")
+            return jsonify(st.documents(status=request.args.get("status") or None,
+                                        source=request.args.get("source") or None, q=request.args.get("q", "")[:200],
+                                        limit=_int("limit", 50, 1, 200), offset=_int("offset", 0, 0, 10**7),
+                                        min_relevance=int(mr) if mr and mr.isdigit() else None))
+        from .collect.fetch import FetchError
+        from .intel.service import collector
+        b = request.get_json(silent=True) or {}
+        tags = [str(t)[:40] for t in b.get("tags") or []][:10]
+        try:
+            if b.get("text"):
+                r = collector(get_config(), st).add_text(str(b["text"]), title=str(b.get("title", ""))[:300],
+                                                         url=str(b.get("url", ""))[:2000], actor=actor(), tags=tags)
+            elif b.get("url"):
+                r = collector(get_config(), st).add_url(str(b["url"])[:2000], actor=actor(), tags=tags)
+            else:
+                return jsonify({"error": "send text or url"}), 400
+        except (FetchError, ValueError) as exc:
+            return jsonify({"error": str(exc)[:300]}), 400
+        job = _process_job([r["id"]], b.get("use_model")) if r["new"] else None
+        return jsonify({**r, "job_id": job})
+
+    @app.route("/api/documents/<int:doc_id>")
+    def document(doc_id):
+        st = kstore()
+        d = st.document(doc_id)
+        if not d:
+            return jsonify({"error": "not found"}), 404
+        return jsonify({**d, "mentions": st.mentions(document_id=doc_id, limit=500),
+                        "relations": st.relations(document_id=doc_id)})
+
+    @app.route("/api/documents/<int:doc_id>/process", methods=["POST"])
+    def document_process(doc_id):
+        if not kstore().document(doc_id, with_text=False):
+            return jsonify({"error": "not found"}), 404
+        b = request.get_json(silent=True) or {}
+        return jsonify({"job_id": _process_job([doc_id], b.get("use_model"))})
+
+    @app.route("/api/entities")
+    def entities():
+        return jsonify(kstore().entities(etype=request.args.get("type") or None, q=request.args.get("q", "")[:200],
+                                         status=request.args.get("status", "active") or None,
+                                         order=request.args.get("order", "last_seen"),
+                                         limit=_int("limit", 100, 1, 500), offset=_int("offset", 0, 0, 10**7)))
+
+    @app.route("/api/entities/<int:eid>")
+    def entity(eid):
+        from .intel import attack
+        st = kstore()
+        e = st.entity(eid)
+        if not e:
+            return jsonify({"error": "not found"}), 404
+        ref = attack.technique(e["ref"]) if e["type"] == "technique" else (attack.known(e["ref"]) if e["ref"] else None)
+        if ref and "tech" in ref:
+            ref = {**ref, "tech": [{"id": t, "name": (attack.technique(t) or {}).get("name", "")} for t in ref["tech"]]}
+            ref["sw"] = [{"id": x, "name": (attack.known(x) or {}).get("n", "")} for x in ref.get("sw", [])]
+        return jsonify({**e, "attack": ref, "mentions": st.mentions(entity_id=eid), "relations": st.relations(entity_id=eid)})
+
+    @app.route("/api/entities/<int:eid>/status", methods=["POST"])
+    def entity_status(eid):
+        b = request.get_json(silent=True) or {}
+        try:
+            kstore().set_status(eid, str(b.get("status", "")), str(b.get("note", ""))[:500])
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True})
+
+    @app.route("/api/lookup")
+    def lookup():
+        v = request.args.get("value", "").strip()[:2048]
+        if not v:
+            return jsonify({"error": "value is required"}), 400
+        st = kstore()
+        return jsonify([{**e, "mentions": st.mentions(entity_id=e["id"], limit=20)} for e in st.lookup(v)])
+
+    @app.route("/api/values", methods=["POST"])
+    def add_values():
+        from .intel.service import collector
+        b = request.get_json(silent=True) or {}
+        vals = [str(v)[:2048] for v in b.get("values") or []][:10_000]
+        if not vals:
+            return jsonify({"error": "values is a list of indicators"}), 400
+        ctx = str(b.get("context", "malicious"))
+        return jsonify(collector(get_config(), kstore()).add_values(vals, actor=actor(), context=ctx,
+                                                                     tags=[str(t)[:40] for t in b.get("tags") or []][:10]))
+
+    @app.route("/api/import/stix", methods=["POST"])
+    def import_stix():
+        from .collect.stix_in import import_bundle
+        b = request.get_json(silent=True)
+        if not isinstance(b, (dict, list)):
+            return jsonify({"error": "send a STIX bundle as JSON"}), 400
+        try:
+            r = import_bundle(kstore(), b, source="manual", method="manual", added_by=actor())
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        job = _process_job(r["reports"]) if r["reports"] else None
+        return jsonify({**r, "job_id": job})
 
     @app.route("/api/doctor")
     def doctor_api():

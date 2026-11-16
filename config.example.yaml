@@ -107,6 +107,46 @@ jobs:
 #  groups: [intel-automation]
 #  role: operator
 
+# Collection (docs/collection.md). Every web request: http(s) only, private addresses refused on every
+# redirect hop, size cap.
+collect:
+  allow_private_urls: false  # true only for feeds on your own network
+  fetch_articles: true       # feeds: also fetch each new item's article
+  max_document_chars: 200000
+
+# Extraction (docs/extraction.md). Rules always run; the extractor model adds names, relations and indicator
+# roles, and every item it returns must quote the document.
+extract:
+  model: true                # false = rules only (no model calls at all)
+  chunk_chars: 12000         # text per model call
+  max_chunks: 4              # model calls per document at most
+  strict_links: auto         # auto: in articles, only defanged links count as indicators | true | false
+  ignore_domains: []         # never indicators, e.g. your own and well-known sites
+
+# Indicators expire (status "expired") this many days after they were last seen; seen again = active again.
+intel:
+  ttl_days: {ipv4: 30, ipv6: 30, url: 60, domain: 90, email: 180}
+
+# What to collect. Kinds: feed (RSS/Atom), page, list (text/csv/json/stix), connector. docs/collection.md
+sources: []
+#  - name: gov-advisories
+#    kind: feed
+#    url: "https://example.org/advisories.xml"
+#    interval_minutes: 60
+#    max_items: 20
+#  - name: blocklist
+#    kind: list
+#    url: "https://example.org/ips.txt"
+#    format: text
+#    type: ipv4
+#    interval_minutes: 360
+#  - name: platform
+#    kind: connector
+#    connector: sharing-server
+#    tool: get_objects
+#    arguments: {collection: "<collection id>"}
+#    interval_minutes: 60
+
 # Built-in public web lookups (connector "web", role search). See docs/bridges.md.
 web:
   tools: false

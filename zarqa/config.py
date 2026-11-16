@@ -176,6 +176,11 @@ def load_config() -> Config:
     validate_privacy(data.get("privacy") or {})
     if str((data.get("jobs") or {}).get("mode", "local")) != "local":
         raise ValueError("jobs.mode: only 'local' is supported in this version")
+    from .collect.collector import sources_from
+    sources_from(type("C", (), {"raw": data})())            # fail fast on a bad source
+    for sec in ("collect", "extract", "intel", "web"):
+        if not isinstance(data.get(sec) or {}, dict):
+            raise ValueError(f"{sec}: must be a mapping")
     org = data.get("organization") or {}
     if not isinstance(org, dict):
         raise ValueError("organization: must be a mapping (name, sectors, regions, products, brands, domains)")

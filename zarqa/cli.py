@@ -130,6 +130,104 @@ def cmd_connectors(action: str, name: str | None) -> int:
     return rc
 
 
+def _print_process(r: dict) -> None:
+    m = r.get("model") or {}
+    line = f"document {r['document_id']}: rules {r.get('rules', 0)}, dictionary {r.get('dictionary', 0)}"
+    if m:
+        line += f", model {m.get('items', 0)} items, {m.get('relations', 0)} relations"
+        if m.get("errors"):
+            line += f" (model errors: {'; '.join(m['errors'])[:200]})"
+    print(line + (f", dropped {len(r.get('dropped') or [])}" if r.get("dropped") else ""))
+    if r.get("review"):
+        print(f"  review: {r['review']}")
+    if r.get("error"):
+        print(f"  error: {r['error']}")
+
+
+def cmd_intel(a) -> int:
+    from .config import get_config
+    from .intel import service
+    from .intel.store import store_for
+    cfg = get_config()
+    st = store_for(cfg)
+    use_model = False if getattr(a, "no_model", False) else None
+    if a.cmd == "sources":
+        from .collect.collector import sources_from
+        states = st.source_state()
+        if a.action == "pull":
+            names = [a.name] if a.name else [s["name"] for s in sources_from(cfg)]
+            rc = 0
+            for n in names:
+                r = service.pull_source(cfg, n, actor="cli", use_model=use_model, store=st)
+                print(f"{n}: {len(r['new_documents'])} new documents, {r['values']} values, {r['skipped']} skipped"
+                      + (f", errors: {'; '.join(r['errors'])[:300]}" if r["errors"] else ""))
+                for p in r.get("processed") or []:
+                    _print_process(p)
+                rc |= 1 if r["errors"] and not r["new_documents"] else 0
+            return rc
+        for s in sources_from(cfg):
+            stt = states.get(s["name"], {})
+            print(f"{s['name']:24} {s.get('kind', 'feed'):9} every {s.get('interval_minutes', 0) or '-'} min  "
+                  f"last {stt.get('last_pull', '-')[:16] or '-'}  docs {stt.get('documents', 0)}"
+                  + (f"  ERROR {stt['last_error'][:80]}" if stt.get("last_error") else ""))
+        if not sources_from(cfg):
+            print("no sources configured (sources: in config.yaml)")
+        return 0
+    if a.cmd == "add":
+        c = service.collector(cfg, st)
+        tags = a.tag or []
+        if a.url:
+            r = c.add_url(a.url, actor="cli", tags=tags)
+        elif a.file:
+            r = c.add_file(a.file, actor="cli", tags=tags)
+        else:
+            text = sys.stdin.read()
+            if a.values:
+                r = c.add_values(text.split(), actor="cli", tags=tags)
+                print(f"{r['values']} values added, {r['skipped']} skipped")
+                return 0
+            r = c.add_text(text, title=a.title or "", actor="cli", tags=tags)
+        if r.get("stix"):
+            x = r["stix"]
+            print(f"STIX: {x['indicators']} indicators, {x['entities']} entities, {x['relations']} relations, "
+                  f"{len(x['reports'])} reports")
+            for p in service.process_documents(cfg, x["reports"], store=st, use_model=use_model):
+                _print_process(p)
+            return 0
+        print(f"document {r['id']}" + ("" if r["new"] else " (already stored)"))
+        if r["new"]:
+            for p in service.process_documents(cfg, [r["id"]], store=st, use_model=use_model):
+                _print_process(p)
+        return 0
+    if a.cmd == "process":
+        ids = [int(x) for x in a.ids] or [d["id"] for d in st.documents(status="new", limit=200)]
+        for p in service.process_documents(cfg, ids, store=st, use_model=use_model):
+            _print_process(p)
+        return 0
+    if a.cmd == "entities":
+        for e in st.entities(etype=a.type, q=a.q or "", order=a.order, limit=a.limit):
+            print(f"{e['id']:6} {e['type']:10} {e['display'][:70]:70} seen {e['seen_count']:3}  last {e['last_seen'][:10]}")
+        return 0
+    if a.cmd == "lookup":
+        hits = st.lookup(a.value)
+        if not hits:
+            print("not in the store")
+            return 1
+        for e in hits:
+            print(f"{e['type']} {e['display']}  first {e['first_seen'][:10]}  last {e['last_seen'][:10]}  "
+                  f"seen {e['seen_count']}  status {e['status']}")
+            for m in st.mentions(entity_id=e["id"], limit=10):
+                print(f"  [{m['method']}{'/' + m['context'] if m['context'] else ''}] {m['title'][:60]}: {m['snippet'][:160]}")
+            for r in st.relations(entity_id=e["id"], limit=10):
+                print(f"  {r['src_display']} {r['rel']} {r['dst_display']}  ({r['title'][:50]})")
+        return 0
+    if a.cmd == "stats":
+        import json as _json
+        print(_json.dumps(st.stats(), indent=2))
+        return 0
+    return 2
+
+
 def cmd_models_test() -> int:
     from .config import get_config
     from .llm import test_models
@@ -170,6 +268,28 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_con.add_argument("action", choices=["list", "test", "tools", "login"], nargs="?", default="list")
     p_con.add_argument("name", nargs="?")
     p_con.add_argument("--manual", action="store_true", help="login: paste the redirect URL instead of a local listener")
+    p_src = sub.add_parser("sources", help="list configured sources, or pull one (or all) now")
+    p_src.add_argument("action", nargs="?", choices=["list", "pull"], default="list")
+    p_src.add_argument("name", nargs="?")
+    p_src.add_argument("--no-model", action="store_true", help="rules only, no extractor model")
+    p_add = sub.add_parser("add", help="add a report: --url, --file (text, HTML, PDF, STIX JSON), or text on stdin")
+    p_add.add_argument("--url")
+    p_add.add_argument("--file")
+    p_add.add_argument("--title")
+    p_add.add_argument("--tag", action="append")
+    p_add.add_argument("--values", action="store_true", help="stdin holds indicator values, not a report")
+    p_add.add_argument("--no-model", action="store_true", help="rules only, no extractor model")
+    p_pr = sub.add_parser("process", help="extract intel from documents (default: all new ones)")
+    p_pr.add_argument("ids", nargs="*")
+    p_pr.add_argument("--no-model", action="store_true", help="rules only, no extractor model")
+    p_en = sub.add_parser("entities", help="list what is in the store")
+    p_en.add_argument("--type", help="e.g. actor, malware, ipv4 or a comma list")
+    p_en.add_argument("--q")
+    p_en.add_argument("--order", default="last_seen", choices=["last_seen", "seen", "first_seen", "confidence"])
+    p_en.add_argument("--limit", type=int, default=50)
+    p_lk = sub.add_parser("lookup", help="everything known about a value (indicator, CVE, technique or name)")
+    p_lk.add_argument("value")
+    sub.add_parser("stats", help="counts in the store")
     p_br = sub.add_parser("bridge", help="run a generic bridge as a stdio MCP server (used by connectors)")
     br = p_br.add_subparsers(dest="kind", required=True)
     from .bridges import openapi, taxii
@@ -223,6 +343,8 @@ def cli_main(argv: list[str] | None = None) -> None:
     if a.cmd == "bridge":
         bridges[a.kind].run(a)
         return
+    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats"):
+        sys.exit(cmd_intel(a))
     if a.cmd == "hash-password":
         from .auth import hash_password
         print(hash_password(getpass.getpass("Password: ")))

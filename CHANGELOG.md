@@ -26,3 +26,21 @@ All notable changes are listed here. The format follows
   `allow_write` and the tool named exactly; never offered to a model, never retried, always audited.
 - Bridges: STIX/TAXII 2.1 (read), REST/OpenAPI (GET, POST by name only) and public web (page fetch and
   optional search with a leak guard and SSRF-safe fetching). `zarqa bridge taxii|openapi|web`.
+- Collection: sources in config (RSS/Atom feeds with article fetch, pages, indicator lists in text, csv, json
+  or STIX, and pulls from connectors), scheduled by the server; add text, URLs, files and indicator lists by
+  hand. `zarqa sources | add | process`.
+- STIX 2.x import with structure: indicators, actors, malware, tools, campaigns, CVEs, techniques, targets,
+  relationships and report text.
+- Knowledge store: documents, entities, mentions with the source sentence and how each was found, relations,
+  expiry per indicator type, false-positive and allow-list marks. `zarqa entities | lookup | stats`.
+- Extraction: rules (defang-aware indicators, private addresses and the publisher's domain dropped, CVE and
+  ATT&CK IDs), ATT&CK group and campaign names with aliases, and an optional extractor model whose every item
+  must quote the document; unsupported items are dropped and listed. Prompt-injection check on every document.
+- ATT&CK 20.1 reference data (techniques, retired IDs, groups, software and campaigns with aliases), built by
+  `scripts/build_attack_data.py`.
+- UI: Overview counts, Intel feed, document page (what was found, with quotes), Entities, entity page (where
+  it was found, relations, what ATT&CK knows), Add, Sources.
+
+### Fixed
+
+- IPv4 addresses at the end of a sentence ("... 10.0.0.5.") were not found by the indicator rules.

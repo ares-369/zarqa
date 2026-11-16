@@ -15,29 +15,34 @@ can send what it finds back to them in standard formats.
 
 Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days before it arrived.
 
-> **Early development.** Zarqa is in its first build phase: the foundation (configuration, login and
-> roles, model providers, background jobs, web shell, health check) works and is tested. Nothing
-> collects or analyses intel yet. See the [roadmap](docs/roadmap.md) for what is planned and in what
-> order. Solo-maintained.
+> **Early development, solo-maintained.** Collection, extraction and the connector layer work and are
+> tested; relevance ranking, investigations, brand monitoring and sharing are next. See the
+> [roadmap](docs/roadmap.md).
 
-## What it will do
+## What works today
 
-Each item below is planned, not built. The roadmap tracks progress.
+- **Collect from the internet and from other platforms.** RSS/Atom feeds (with the full article), pages,
+  PDFs, indicator lists (text, CSV, JSON, STIX), and pulls from other intel platforms through MCP
+  connectors or the built-in STIX/TAXII 2.1 and REST bridges. On a schedule, or by hand.
+  ([collection](docs/collection.md))
+- **Turn text into structured intel you can check.** Indicators (defanged or not), CVEs, ATT&CK techniques,
+  threat actors, malware, tools, campaigns and targets, and the relations between them. Each one links to
+  the sentence it came from and says how it was found. ([extraction](docs/extraction.md))
+- **Models are checked, not trusted.** The extractor model must quote the document for every item; items
+  whose quote is not in the text are dropped, and a model can label indicators but never add one. Rules
+  and ATT&CK names work with no model at all.
+- **Aliases resolved.** "Fancy Bear", "Sednit" and "Forest Blizzard" are one actor (APT28), from MITRE
+  ATT&CK data shipped with Zarqa.
+- **Connectors, read-only by default.** Writes to another platform go only through a sharing connector
+  with the exact tool allowed, never from a model, always audited. ([connectors](docs/connectors.md))
+- **Any model.** Local models through Ollama, or cloud providers, per role. Prompts to cloud models are
+  masked (emails, private IPs, user names and your own terms).
 
-- **Ingest from the internet.** RSS/Atom feeds, advisories, blog and report pages, PDFs, pasted text
-  and web search, on a schedule.
-- **Connect to other intel platforms, both ways.** Read through MCP connectors and generic
-  STIX/TAXII 2.1 and REST bridges; send results back as STIX 2.1, over TAXII or in MISP format. Writing
-  is off by default and enabled per connector.
-- **Turn text into structured intel.** Indicators, CVEs, threat actors, malware, ATT&CK techniques and
-  the relations between them, each linked to the sentence it came from.
-- **Rank by relevance.** You describe your organization (sectors, regions, products, brands); each
-  item is scored against that profile, with the reason shown.
-- **Investigate with evidence.** Ask a question; the analyst model plans, queries your sources, pivots,
-  and answers with every claim tied to evidence. It says when the data is not enough.
-- **Watch your brand.** Lookalike domains, new registrations and page checks for the brands you list.
-- **Any model.** Local models through Ollama, or cloud providers, chosen per role. Prompts to cloud
-  models are masked (emails, private IPs, user names and your own terms).
+## Planned
+
+Relevance ranking against your organization profile, cited investigations ("what do we know about this
+domain?"), brand and lookalike-domain monitoring, sharing out (STIX 2.1, TAXII, MISP-format, MCP server),
+reports and a daily brief, a demo mode and a published benchmark.
 
 ## Try it
 
@@ -46,6 +51,10 @@ pip install -e '.[dev]'          # from a checkout; PyPI comes with the first re
 zarqa init                       # config.yaml, .env (mode 600) and data/ in the home folder
 zarqa doctor                     # checks the setup and says what to fix
 zarqa serve                      # http://127.0.0.1:8621
+
+zarqa add --url https://...      # a report, extracted straight away
+zarqa sources pull               # pull every source in config.yaml now
+zarqa lookup 203.0.113.66        # everything known about a value, with the sentences
 ```
 
 Docker: `docker compose up -d` (non-root, read-only container, loopback port).
