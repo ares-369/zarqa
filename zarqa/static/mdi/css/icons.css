@@ -25,10 +25,12 @@
 .mdi-email::before{content:"\F01EE"}
 .mdi-email-outline::before{content:"\F01F0"}
 .mdi-file::before{content:"\F0214"}
+.mdi-file-chart-outline::before{content:"\F1029"}
 .mdi-file-document-outline::before{content:"\F09EE"}
 .mdi-file-document-plus-outline::before{content:"\F1A9E"}
 .mdi-file-search-outline::before{content:"\F0C7D"}
 .mdi-flag-variant::before{content:"\F0240"}
+.mdi-flask-outline::before{content:"\F0096"}
 .mdi-format-list-bulleted::before{content:"\F0279"}
 .mdi-ghost::before{content:"\F02A0"}
 .mdi-graph-outline::before{content:"\F104A"}
@@ -41,6 +43,7 @@
 .mdi-magnify::before{content:"\F0349"}
 .mdi-magnify-plus-outline::before{content:"\F06ED"}
 .mdi-newspaper-variant-outline::before{content:"\F1004"}
+.mdi-open-in-new::before{content:"\F03CC"}
 .mdi-play::before{content:"\F040A"}
 .mdi-plus::before{content:"\F0415"}
 .mdi-post::before{content:"\F1008"}

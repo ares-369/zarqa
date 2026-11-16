@@ -1,4 +1,5 @@
 # docker compose up -d   ->  http://127.0.0.1:8621
+# Demo with fictional sample data, offline, nothing kept:  docker compose --profile demo up demo  ->  http://127.0.0.1:8631
 # Config and data live in ./zarqa-data (config.yaml, .env, databases). Edit them there.
 services:
   zarqa:
@@ -24,3 +25,22 @@ services:
       - no-new-privileges:true
     mem_limit: 2g
     pids_limit: 256
+
+  # Demo: fictional sample data and a scripted stand-in for the model (not AI). Lives in memory; gone on stop.
+  demo:
+    profiles: ["demo"]
+    build: .
+    image: zarqa:local
+    command: ["sh", "-c", "zarqa demo --dir /demo --run && ZARQA_HOME=/demo ZARQA_CONFIG=/demo/config.yaml ZARQA_BIND_HOST=0.0.0.0 exec zarqa serve"]
+    ports:
+      - "127.0.0.1:8631:8631"
+    environment:
+      ZARQA_BIND_PORT: "8631"
+      ZARQA_ALLOW_UNAUTHENTICATED_NETWORK: "true"   # the port is still published on loopback only
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /demo:uid=10001,gid=10001
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true

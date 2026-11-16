@@ -92,7 +92,12 @@ def process(store: KnowledgeStore, doc_id: int, *, cfg=None, llm=None, use_model
         for rel in r["relations"]:
             def end(x):
                 kind, val = x
-                return by_value.get(val.lower()) if kind == "ioc" else ids.get((kind, val))
+                if kind == "ioc":
+                    return by_value.get(val.lower())
+                if (kind, val) in ids:
+                    return ids[(kind, val)]
+                e = store.find(kind, val) if kind in ("cve", "technique") else None   # found by the rules
+                return e["id"] if e else None
             a, b = end(rel["source"]), end(rel["target"])
             if a and b:
                 store.add_relation(a, rel["type"], b, doc_id, method="model", snippet=rel["quote"])

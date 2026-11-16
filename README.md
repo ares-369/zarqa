@@ -16,8 +16,8 @@ can send what it finds back to them in standard formats.
 Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days before it arrived.
 
 > **Early development, solo-maintained.** Collection, extraction, enrichment, relevance ranking,
-> investigations, brand watch, sharing and the connector layer work and are tested; reports, a demo mode and
-> a benchmark come before the first release. See the
+> investigations, brand watch, sharing, reports and the connector layer work and are tested; a benchmark
+> comes before the first release. See the
 > [roadmap](docs/roadmap.md).
 
 ## What works today
@@ -47,16 +47,31 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
 - **Shares in standard formats.** STIX 2.1 and MISP-format exports, a read-only TAXII 2.1 server, pushes to
   other platforms that a person starts, and an MCP server so other agents can ask Zarqa.
   ([sharing](docs/sharing.md))
+- **A brief.** What came in over a day or a week, most relevant first, with new names, indicators,
+  known-exploited CVEs, lookalikes and investigations; Markdown or HTML. `zarqa brief`.
 - **Connectors, read-only by default.** Writes to another platform go only through a sharing connector
   with the exact tool allowed, never from a model, always audited. ([connectors](docs/connectors.md))
 - **Any model.** Local models through Ollama, or cloud providers, per role. Prompts to cloud models are
   masked (emails, private IPs, user names and your own terms).
 
+## Screenshots
+
+From the offline demo (fictional data).
+
+| A report: what was found, with the sentence each came from | An investigation: every finding cites its evidence |
+|---|---|
+| ![document](docs/screenshots/document.png) | ![investigation](docs/screenshots/investigation.png) |
+| **An actor: where it was seen, relations, what ATT&CK knows** | **Brand watch: lookalikes scored and tracked** |
+| ![entity](docs/screenshots/entity.png) | ![brand](docs/screenshots/brand.png) |
+
 ## Planned
 
-Reports and a daily brief, a demo mode and a published benchmark.
+A published extraction benchmark, and the first release.
 
 ## Try it
+
+Offline, with fictional sample data and no model: `zarqa demo --run`, then
+`ZARQA_HOME=~/.zarqa-demo zarqa serve` ([demo](docs/demo.md)). Or `docker compose --profile demo up demo`.
 
 ```bash
 pip install -e '.[dev]'          # from a checkout; PyPI comes with the first release

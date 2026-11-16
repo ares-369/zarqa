@@ -64,3 +64,4 @@ table.cards,.cards tbody,.cards tr,.cards td{display:block;width:100%}.cards the
 .cards tr{border-bottom:1px solid var(--line);padding:.5rem 0}.cards td{border:0;padding:.12rem 0}
 .cards td:empty{display:none}}
 .wrap td{overflow-wrap:anywhere}
+.demo-banner{background:#2f2a10;color:var(--amber);padding:.45rem 1rem;border-bottom:1px solid var(--amber);display:flex;gap:.4rem;align-items:center}

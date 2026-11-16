@@ -42,7 +42,8 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
 
     @app.route("/")
     def index():
-        return render_template("index.html", name=cfg.instance_name, version=__version__)
+        return render_template("index.html", name=cfg.instance_name, version=__version__,
+                               demo=bool((cfg.raw.get("zarqa") or {}).get("demo")))
 
     @app.route("/api/status")
     def status():
@@ -303,6 +304,45 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
             return jsonify({"error": str(exc)}), 400
         job = _process_job(r["reports"]) if r["reports"] else None
         return jsonify({**r, "job_id": job})
+
+    # ---- reports ----
+    def _report(md: str, fmt: str, name: str, title: str):
+        from flask import Response
+
+        from .reporting import to_html
+        if fmt == "html":
+            r = Response(to_html(md, title), mimetype="text/html")
+            # the report carries its own small stylesheet and nothing else
+            r.headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; img-src 'none'"
+        elif fmt == "md":
+            r = Response(md, mimetype="text/markdown")
+        else:
+            return jsonify({"error": "format must be md or html"}), 400
+        if request.args.get("download"):
+            r.headers["Content-Disposition"] = f'attachment; filename="{name}.{fmt}"'
+        return r
+
+    @app.route("/api/brief")
+    def brief():
+        from .reporting import brief_data, brief_markdown
+        try:
+            days = max(0.1, min(90.0, float(request.args.get("days", 1))))
+        except ValueError:
+            days = 1.0
+        b = brief_data(get_config(), kstore(), days=days)
+        fmt = request.args.get("format", "json")
+        if fmt == "json":
+            return jsonify(b)
+        return _report(brief_markdown(b), fmt, f"zarqa-brief-{b['generated'][:10]}", f"{b['instance']} brief")
+
+    @app.route("/api/documents/<int:doc_id>/report.<fmt>")
+    def document_report(doc_id, fmt):
+        from .reporting import document_markdown
+        try:
+            md = document_markdown(kstore(), doc_id)
+        except ValueError:
+            return jsonify({"error": "not found"}), 404
+        return _report(md, fmt, f"zarqa-document-{doc_id}", f"Document {doc_id}")
 
     # ---- sharing out ----
     from .share.taxii_server import blueprint as taxii_bp

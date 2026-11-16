@@ -71,8 +71,7 @@ is the same in every repository.
   root and `setup.py` copies it into the wheel; Actaeon keeps it inside the package. `requirements.txt`
   stays for the OniOps installer and Dockerfile until that move.
 
-- Zarqa: `demo` is not built yet (it comes with the first release), and jobs run in the server only
-  (no separate worker yet).
+- Zarqa: jobs run in the server only (no separate worker yet).
 
 ## Writing
 

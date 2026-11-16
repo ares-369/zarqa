@@ -159,6 +159,18 @@ def test_check_grounding():
                                 "quote": "contacted hxxps://update-check[.]example-cdn[.]net/api"}]
 
 
+def test_relation_to_a_cve_found_by_the_rules(store):
+    text = "Tin Heron exploited CVE-2026-31337 in a VPN appliance."
+    reply = {"items": [{"type": "actor", "name": "Tin Heron", "quote": "Tin Heron exploited CVE-2026-31337"}],
+             "relations": [{"source": "Tin Heron", "type": "exploits", "target": "CVE-2026-31337",
+                            "quote": "Tin Heron exploited CVE-2026-31337 in a VPN appliance"}]}
+    assert check(reply, text, [])["relations"][0]["target"] == ("cve", "CVE-2026-31337")
+    d = store.add_document(source="m", kind="text", text=text, title="t")
+    process(store, d["id"], llm=FakeLLM(reply))
+    assert [(r["src_display"], r["rel"], r["dst_display"]) for r in store.relations(document_id=d["id"])] == [
+        ("Tin Heron", "exploits", "CVE-2026-31337")]
+
+
 def test_chunks():
     text = "\n\n".join("p" * 100 for _ in range(50))
     parts = chunks(text, 1000, 3)

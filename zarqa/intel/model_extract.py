@@ -144,13 +144,26 @@ def check(reply: dict, text: str, indicators: list[str]) -> dict:
             continue
         quote = str(it.get("quote", ""))
         labels.append({"value": inds[v.lower()], "role": role, "quote": quote.strip() if _in(quote, sq) else ""})
+    def end(name: str):
+        n = name.strip()
+        hit = kept_names.get(attack.norm(n))
+        if hit:
+            return hit
+        if n.lower() in inds:
+            return ("ioc", inds[n.lower()])
+        m = re.fullmatch(r"(CVE-\d{4}-\d{4,7})", n, re.I)
+        if m and m.group(1).lower() in sq:
+            return ("cve", m.group(1).upper())
+        if re.fullmatch(r"T\d{4}(?:\.\d{3})?", n.upper()) and attack.technique(n) and n.lower() in sq:
+            return ("technique", attack.technique(n)["id"])
+        return None
+
     rels = []
     for r in reply.get("relations") or []:
         if not isinstance(r, dict):
             continue
         a, b, rt = str(r.get("source", "")).strip(), str(r.get("target", "")).strip(), str(r.get("type", "")).lower()
-        src = kept_names.get(attack.norm(a)) or (("ioc", inds[a.lower()]) if a.lower() in inds else None)
-        dst = kept_names.get(attack.norm(b)) or (("ioc", inds[b.lower()]) if b.lower() in inds else None)
+        src, dst = end(a), end(b)
         if rt not in RELATIONS or not src or not dst:
             dropped.append({"item": f"{a} {rt} {b}"[:120], "why": "relation type unknown or an end was not kept"})
             continue

@@ -63,6 +63,14 @@ All notable changes are listed here. The format follows
   person-initiated pushes through sharing connectors (`share.targets`, `zarqa share`); `zarqa export`.
 - Zarqa as an MCP server: `zarqa mcp` and `POST /mcp` (token role viewer by default; `ask` needs operator).
 
+- Brief (`zarqa brief`, `/api/brief`, Overview) and per-document reports, Markdown or HTML (escaped, its own
+  strict content security policy).
+- Demo: `zarqa demo [--run]` and `docker compose --profile demo up demo`: fictional sample data processed offline
+  by a scripted stand-in for the model (labelled, not AI); UI banner. CI runs it from the wheel and the container.
+- Relations from the model may end at a CVE or technique ID the rules found.
+
 ### Fixed
 
+- Investigation checks compared a claim's refanged indicator with defanged evidence text and set true claims
+  aside.
 - IPv4 addresses at the end of a sentence ("... 10.0.0.5.") were not found by the indicator rules.

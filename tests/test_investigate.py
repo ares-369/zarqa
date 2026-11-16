@@ -81,6 +81,14 @@ def test_check_assessment():
     assert none["outcome"] == "not_enough_data" and none["confidence"] == 30
 
 
+def test_defanged_values_match_their_evidence():
+    steps = [{"n": 1, "ok": True, "result": "C2 at hxxps://cdn-update[.]glass[.]example/api"}]
+    r = check_assessment({"outcome": "answered", "confidence": 60, "findings": [
+        {"claim": "It used hxxps://cdn-update[.]glass[.]example/api", "evidence": ["E1"]},
+        {"claim": "It used https://cdn-update.glass.example/api", "evidence": ["E1"]}]}, steps, "q")
+    assert len(r["findings"]) == 2 and not r["unsupported"]
+
+
 def test_investigation_loop(env):
     cfg, ks, ist, did = env
     llm = Script([

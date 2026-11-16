@@ -31,7 +31,7 @@ _log = logging.getLogger("zarqa")
 #   analyst:   investigations, relevance and assessments (the strongest model you have)
 #   reporter:  briefs and report text
 LLM_ROLES = ("extractor", "analyst", "reporter")
-PROVIDERS = ("ollama", "anthropic", "gemini", "openai", "azure_openai", "openai_compatible", "cli")
+PROVIDERS = ("ollama", "anthropic", "gemini", "openai", "azure_openai", "openai_compatible", "cli", "demo")
 
 
 def _load_env() -> None:

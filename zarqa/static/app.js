@@ -94,6 +94,10 @@ async function overview() {
     kpi(sum("ipv4", "ipv6", "domain", "url", "email", "md5", "sha1", "sha256"), "indicators", "#entities"),
     kpi(sum("actor", "campaign"), "actors and campaigns", "#entities"), kpi(sum("malware", "tool"), "malware and tools", "#entities"),
     kpi(e.cve || 0, "CVEs", "#entities"), kpi(st.relations, "relations", "#entities")));
+  const days = h("select", {}, [["1", "last day"], ["7", "last week"], ["30", "last 30 days"]].map(([v, l]) => h("option", { value: v }, l)));
+  main.append(section("Brief", "file-chart-outline", h("p", { class: "muted small" }, "What came in over a period, most relevant to you first, with new names, indicators, known-exploited CVEs, lookalikes and investigations."),
+    h("div", { class: "row" }, days, h("button", { class: "ghost", onclick: () => window.open(`/api/brief?format=html&days=${days.value}`, "_blank", "noopener") }, icon("open-in-new"), "Open"),
+      h("button", { class: "ghost", onclick: () => { location.href = `/api/brief?format=md&download=1&days=${days.value}`; } }, icon("download"), "Markdown"))));
   const recent = await api("/api/documents?limit=8");
   main.append(section("Latest documents", "newspaper-variant-outline", recent.length ? docTable(recent)
     : h("p", { class: "muted" }, "Nothing collected yet. Add sources in config.yaml (sources:), or add a report.", " ",
@@ -163,6 +167,7 @@ async function docPage(id) {
       h("button", { "data-need": "op", class: "ghost", onclick: async () => { await post(`/api/documents/${id}/process`); toast("Processing; refresh in a moment."); } }, icon("refresh"), "Process again"),
       h("a", { href: `/api/export/stix?document=${id}&download=1` }, h("button", { class: "ghost" }, icon("download"), "STIX")),
       h("a", { href: `/api/export/misp?document=${id}&download=1` }, h("button", { class: "ghost" }, icon("download"), "MISP format")),
+      h("a", { href: `/api/documents/${id}/report.html`, target: "_blank", rel: "noopener" }, h("button", { class: "ghost" }, icon("file-chart-outline"), "Report")),
       shareBox({ document_id: Number(id) })),
     d.review ? h("p", { class: "warn" }, icon("alert-outline"), " ", d.review) : null,
     d.error ? h("p", { class: "bad small" }, d.error) : null,

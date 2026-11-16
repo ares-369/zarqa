@@ -25,7 +25,7 @@ from typing import Any
 
 from ..connectors.hub import ToolCallError
 from ..connectors.untrusted import SYSTEM_RULE, wrap
-from ..intel.extract import extract
+from ..intel.extract import extract, refang
 from ..intel.injection import scan
 from ..jsonparse import first_object
 from ..providers.base import FINAL_TOOLS
@@ -106,7 +106,8 @@ _VALUE_TYPES = ("ipv4", "ipv6", "domain", "url", "email", "md5", "sha1", "sha256
 
 def check_assessment(a: dict, steps: list[dict], question: str) -> dict:
     ok_ids = {f"E{s['n']}" for s in steps if s["ok"]}
-    texts = {f"E{s['n']}": (s.get("result") or "").lower() for s in steps}
+    # indicators are compared refanged on both sides: a claim may quote "hxxp://a[.]b" from the evidence
+    texts = {f"E{s['n']}": refang(s.get("result") or "").lower() for s in steps}
     findings, unsupported = [], []
     for f in a.get("findings") or []:
         if not isinstance(f, dict):
@@ -121,7 +122,7 @@ def check_assessment(a: dict, steps: list[dict], question: str) -> dict:
             continue
         found = extract(claim)
         missing = [v for k in _VALUE_TYPES for v in found.get(k, [])
-                   if v.lower() not in question.lower() and not any(v.lower() in texts[c] for c in valid)]
+                   if v.lower() not in refang(question).lower() and not any(v.lower() in texts[c] for c in valid)]
         if missing:
             unsupported.append({"claim": claim, "why": f"{', '.join(missing[:3])} not in the cited evidence"})
             continue

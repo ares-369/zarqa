@@ -57,7 +57,7 @@ zarqa = "zarqa.cli:cli_main"
 include = ["zarqa*"]
 
 [tool.setuptools.package-data]
-zarqa = ["templates/*.html", "static/**/*", "config.example.yaml"]
+zarqa = ["templates/*.html", "static/**/*", "config.example.yaml", "intel/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

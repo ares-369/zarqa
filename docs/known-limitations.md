@@ -1,6 +1,6 @@
 # Known limitations
 
-- Reports, a daily brief, the demo and a published benchmark are not built yet (see the [roadmap](roadmap.md)).
+- No published benchmark yet (see the [roadmap](roadmap.md)): the tested-on notes in each doc are spot checks.
 - The TAXII server pages by position: an object added between two page requests can shift a page. It is
   read-only and has no per-collection access control beyond the login or token.
 - Brand watch does not compare registrants, so a brand's own defensive registrations can score as middling

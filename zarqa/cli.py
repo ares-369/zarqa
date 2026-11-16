@@ -262,6 +262,16 @@ def cmd_intel(a) -> int:
         if inv["review"]:
             print(f"  review: {inv['review']}")
         return 0
+    if a.cmd in ("brief", "report"):
+        from .reporting import brief_data, brief_markdown, document_markdown, to_html
+        md = brief_markdown(brief_data(cfg, st, days=a.days)) if a.cmd == "brief" else document_markdown(st, a.id)
+        text = to_html(md, "Zarqa") if a.html else md
+        if a.out:
+            Path(a.out).write_text(text, encoding="utf-8")
+            print(f"wrote {a.out}")
+        else:
+            print(text)
+        return 0
     if a.cmd == "export":
         from .share.push import build
         from .share.stix_out import export
@@ -396,6 +406,14 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_ask = sub.add_parser("ask", help="investigate a question; the answer cites its evidence")
     p_ask.add_argument("question")
     p_ask.add_argument("--max-steps", type=int, default=None)
+    p_bf = sub.add_parser("brief", help="what came in, most relevant first (markdown, or --html)")
+    p_bf.add_argument("--days", type=float, default=1.0)
+    p_bf.add_argument("--html", action="store_true")
+    p_bf.add_argument("--out")
+    p_rp = sub.add_parser("report", help="a report on one document (markdown, or --html)")
+    p_rp.add_argument("id", type=int)
+    p_rp.add_argument("--html", action="store_true")
+    p_rp.add_argument("--out")
     p_ex = sub.add_parser("export", help="write a STIX 2.1 bundle or a MISP-format event")
     p_ex.add_argument("format", choices=["stix", "misp"])
     p_ex.add_argument("--document", type=int, help="one document and what was found in it")
@@ -409,6 +427,10 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_sh.add_argument("--document", type=int)
     p_sh.add_argument("--entity", type=int, action="append")
     sub.add_parser("mcp", help="serve Zarqa as an MCP server on stdio")
+    p_demo = sub.add_parser("demo", help="a home folder with fictional sample data, processed offline by a scripted "
+                                         "stand-in for the model (not AI)")
+    p_demo.add_argument("--dir", default=str(Path.home() / ".zarqa-demo"))
+    p_demo.add_argument("--run", action="store_true", help="also run a sample investigation and print it")
     p_br2 = sub.add_parser("brand", help="lookalike domains of your own: list findings, or run the watch now")
     p_br2.add_argument("action", nargs="?", choices=["list", "run"], default="list")
     p_br2.add_argument("--limit", type=int, default=50)
@@ -472,8 +494,24 @@ def cli_main(argv: list[str] | None = None) -> None:
     if a.cmd == "bridge":
         bridges[a.kind].run(a)
         return
-    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore", "ask", "brand", "export", "share"):
+    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore", "ask", "brand", "export", "share", "brief", "report"):
         sys.exit(cmd_intel(a))
+    if a.cmd == "demo":
+        from .demo.setup import build
+        r = build(Path(a.dir), run=a.run)
+        print(f"demo home: {r['home']} ({r['documents']} sample documents; all fictional)")
+        for p in r["processed"]:
+            _print_process(p)
+            rel = p.get("relevance") or {}
+            if rel.get("score") is not None:
+                print(f"  relevance {rel['score']}: {'; '.join(rel['reasons'])[:160]}")
+        inv = r["investigation"]
+        if inv:
+            print(f"\ninvestigation: [{inv.get('outcome')}] {inv.get('answer', '')}")
+            for f in inv.get("findings", []):
+                print(f"  - {f['claim'][:160]} ({', '.join(f['evidence'])})")
+        print(f"\nserve it: ZARQA_HOME={r['home']} zarqa serve   ->  http://127.0.0.1:8631")
+        return
     if a.cmd == "mcp":
         from .mcp_server import run as run_mcp
         run_mcp()

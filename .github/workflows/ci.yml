@@ -73,6 +73,7 @@ jobs:
           /tmp/v/bin/zarqa version
           /tmp/v/bin/zarqa init
           /tmp/v/bin/zarqa doctor --offline
+          /tmp/v/bin/zarqa demo --dir /tmp/demo --run | grep -q "investigation: \[answered\]"
           ZARQA_BIND_PORT=8698 /tmp/v/bin/zarqa serve > /tmp/serve.log 2>&1 &
           for i in $(seq 1 30); do curl -fs http://127.0.0.1:8698/healthz && break; sleep 1; done
           curl -fs -o /dev/null http://127.0.0.1:8698/
@@ -97,6 +98,7 @@ jobs:
           test -f data/config.yaml
           test "$(docker exec zarqa-ci id -u)" = "10001"
           docker exec zarqa-ci zarqa version
+          docker exec zarqa-ci zarqa demo --dir /data/demo --run | grep -q "investigation: \[answered\]"
       - name: Logs on failure
         if: failure()
         run: docker logs zarqa-ci || true
