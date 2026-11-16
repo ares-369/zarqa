@@ -1,0 +1,111 @@
+# Zarqa configuration. Copy to config.yaml (or run `zarqa init`).
+# Secrets (API keys, passwords) go in .env, never here.
+
+zarqa:
+  instance_name: "Zarqa"
+  bind_host: "127.0.0.1"     # loopback by default; set auth before exposing
+  bind_port: 8621
+  external_url: ""           # public URL behind a reverse proxy (OIDC redirects)
+  data_dir: ""               # default: <home>/data
+  allow_unauthenticated_network: false
+
+auth:
+  mode: "none"               # none | basic | local | oidc | proxy
+  username: "zarqa"          # basic/local; password in .env ZARQA_AUTH_PASSWORD
+  default_role: "admin"      # admin | operator | viewer
+  roles: {}                  # username: role
+  group_roles: {}            # identity-provider group: role, e.g. {cti-analysts: operator}
+  require_group_role: false  # refuse people in none of the group_roles groups
+  proxy_groups_header: ""    # proxy mode: header with the user's groups, e.g. X-Forwarded-Groups
+  proxy_header: "X-Forwarded-User"
+  proxy_trusted_ips: []      # required for proxy mode
+  allowed_users: []
+  users: {}                  # named accounts: `zarqa users add NAME`
+  oidc:
+    issuer: ""
+    client_id: ""            # client secret in .env OIDC_CLIENT_SECRET
+    scopes: "openid email profile"
+    username_claim: "email"
+    groups_claim: "groups"
+
+# Model per role. Change from Settings in the UI, or here.
+llm:
+  roles:
+    extractor: { provider: "ollama", model: "" }   # reports and pages -> structured intel
+    analyst:   { provider: "ollama", model: "" }   # investigations, relevance, assessments
+    reporter:  { provider: "ollama", model: "" }   # briefs and report text
+  providers:
+    ollama:
+      base_url: "http://localhost:11434"
+      default_model: "qwen2.5:7b"
+      num_ctx: 8192            # context window asked of Ollama (its own default cuts long prompts)
+      timeout_sec: 300
+      # think: false          # reasoning models (e.g. qwen3): false skips the thinking step
+      think_tokens: 6000       # extra reply room for a reasoning model's thinking
+    anthropic:
+      default_model: ""        # ANTHROPIC_API_KEY in .env
+    gemini:
+      auth: auto               # auto | api_key | vertex | vertex_api_key
+      default_model: ""
+      project: ""
+      location: global
+      credentials_file: ""
+      base_url: ""
+    openai:
+      default_model: ""        # OPENAI_API_KEY in .env
+    azure_openai:
+      base_url: ""             # AZURE_OPENAI_API_KEY in .env
+      api_version: "2024-10-21"
+    openai_compatible:
+      base_url: ""             # OPENAI_COMPAT_API_KEY in .env
+      default_model: ""
+    cli:                       # a model CLI you are signed in to on this machine
+      command: []              # e.g. ["/path/to/cli", "--model", "{model}", "-p={prompt}"]
+      default_model: ""
+      timeout_sec: 180
+
+# Who you are, so intel can be ranked by how much it matters to you (all optional).
+# Names here are masked before prompts go to cloud models when listed in privacy.terms.
+organization: {}
+#  name: "Example Org"
+#  sectors: [finance]
+#  regions: [europe]
+#  products: ["<web server>", "<VPN appliance>", "<mail platform>"]   # what you run, by name
+#  brands: ["example"]                    # for lookalike and brand-abuse monitoring
+#  domains: ["example.com"]               # your own domains
+#  notes: ["Remote staff use a VPN appliance"]
+
+# Limits on one investigation (a model-driven tool loop).
+limits:
+  max_steps: 20              # tool calls
+  max_runtime_sec: 600
+  max_result_bytes: 8000     # per tool result fed back to the model
+  max_tokens: 0              # model tokens before an answer is forced; 0 = no cap
+  max_query_sec: 60          # one tool call, retries included
+
+# Mask personal and internal data before prompts go to cloud models (restored in replies).
+# Public IPs are kept: they are the indicators. Private IPs, emails and user names are masked.
+privacy:
+  mask_for: [anthropic, gemini, openai, azure_openai, openai_compatible, cli]
+  types: [email, ipv4, ipv6, user]
+  terms: []                  # e.g. your organization and internal domain names
+  patterns: []               # extra regexes
+  keep_public_ips: true
+
+# Storage. Empty url = SQLite in the data folder. PostgreSQL: url from .env, e.g. ${ZARQA_DB_URL}
+# (pip install 'zarqa[postgres]').
+database:
+  url: ""
+  schema: zarqa
+
+# Background jobs run on the server's own threads.
+jobs:
+  threads: 3
+
+# Identity for scheduled work (feed pulls, watches); without it that work may use every connector.
+#scheduler:
+#  groups: [intel-automation]
+#  role: operator
+
+# MCP connectors: other intel platforms, enrichment and search services. See docs/connectors.md.
+connectors: []

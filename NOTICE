@@ -1,0 +1,17 @@
+Zarqa
+Copyright 2026 ares-369
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Zarqa collects public information from the internet and reads from the intel
+sources you connect to it. Use it only with sources and data you are authorized
+to access, and follow each source's terms of use. It is provided "AS IS", without
+warranty of any kind (sections 7 and 8 of the License). Its read-only defaults,
+tool allow/deny lists and audit log are safety aids, not a guarantee.
+
+Bundled third-party assets:
+  * Material Design Icons webfont (zarqa/static/mdi) - see its LICENSE file.

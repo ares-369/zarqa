@@ -1,0 +1,18 @@
+/* Subset of Material Design Icons 7.4.47 (Apache-2.0, see ../LICENSE); built by scripts/build_icons.py */
+@font-face{font-family:"Material Design Icons";src:url("../fonts/icons.woff2") format("woff2");font-weight:normal;font-style:normal}
+.mdi::before,.mdi-set{display:inline-block;font:normal normal normal 24px/1 "Material Design Icons";font-size:inherit;text-rendering:auto;line-height:inherit;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.mdi-account-circle-outline::before{content:"\F0B55"}
+.mdi-binoculars::before{content:"\F00A5"}
+.mdi-brain::before{content:"\F09D1"}
+.mdi-cog::before{content:"\F0493"}
+.mdi-content-save::before{content:"\F0193"}
+.mdi-ghost::before{content:"\F02A0"}
+.mdi-lan-check::before{content:"\F12AA"}
+.mdi-login::before{content:"\F0342"}
+.mdi-post::before{content:"\F1008"}
+.mdi-progress-clock::before{content:"\F0996"}
+.mdi-select::before{content:"\F0485"}
+.mdi-stethoscope::before{content:"\F04D9"}
+.mdi-stop::before{content:"\F04DB"}
+.mdi-table::before{content:"\F04EB"}
+.mdi-view-dashboard-outline::before{content:"\F0A1D"}

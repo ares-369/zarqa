@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in - {{ instance }}</title>
+<link rel="stylesheet" href="/static/mdi/css/icons.css">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body class="login-page">
+<form class="login-card" method="post" action="/login">
+  <div class="brand big"><span class="mdi mdi-binoculars"></span>{{ instance }}</div>
+  {% if error %}<p class="bad">{{ error }}</p>{% endif %}
+  <label>Username<input name="username" autocomplete="username" required autofocus></label>
+  <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+  <button type="submit"><span class="mdi mdi-login"></span> Sign in</button>
+</form>
+</body>
+</html>

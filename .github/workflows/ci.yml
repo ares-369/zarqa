@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test & Lint (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip && pip install -e '.[dev]'
+      - run: ruff check zarqa tests scripts
+      - run: node --check zarqa/static/app.js
+      - run: pytest -q
+
+  postgres:
+    name: Test on PostgreSQL (optional storage)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: zarqa
+          POSTGRES_PASSWORD: zarqa
+          POSTGRES_DB: zarqa
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U zarqa" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      ZARQA_DB_URL: postgresql://zarqa:zarqa@localhost:5432/zarqa
+      ZARQA_DB_SCHEMA_PER_DIR: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip && pip install -e '.[dev,postgres]'
+      - run: pytest -q -rs
+
+  wheel:
+    name: Wheel install smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Build and install outside the checkout
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build -o dist .
+          python -m twine check dist/*
+          python -m venv /tmp/v && /tmp/v/bin/pip install dist/*.whl
+          core=$(/tmp/v/bin/python -c "import importlib.metadata as m; print(sum('extra ==' not in r for r in m.requires('zarqa')))")
+          size=$(stat -c %s dist/*.whl)
+          echo "required packages: $core, wheel: $size bytes"
+          test "$core" -eq 5 && test "$size" -lt 1500000
+          cd /tmp && export HOME=/tmp/home
+          /tmp/v/bin/zarqa version
+          /tmp/v/bin/zarqa init
+          /tmp/v/bin/zarqa doctor --offline
+          ZARQA_BIND_PORT=8698 /tmp/v/bin/zarqa serve > /tmp/serve.log 2>&1 &
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8698/healthz && break; sleep 1; done
+          curl -fs -o /dev/null http://127.0.0.1:8698/
+          curl -fs -o /dev/null http://127.0.0.1:8698/static/mdi/LICENSE
+          curl -fs -o /dev/null http://127.0.0.1:8698/static/mdi/fonts/icons.woff2
+
+  docker:
+    name: Container build and health check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build image
+        run: docker build -t zarqa:ci .
+      - name: Start and check
+        run: |
+          mkdir -p data && chmod 777 data
+          docker run -d --name zarqa-ci -p 127.0.0.1:8621:8621 -v "$PWD/data:/data" \
+            -e ZARQA_ALLOW_UNAUTHENTICATED_NETWORK=true --read-only --tmpfs /tmp --cap-drop ALL \
+            --security-opt no-new-privileges zarqa:ci
+          for i in $(seq 1 40); do curl -fs http://127.0.0.1:8621/healthz && break; sleep 1; done
+          curl -fs -o /dev/null http://127.0.0.1:8621/
+          test -f data/config.yaml
+          test "$(docker exec zarqa-ci id -u)" = "10001"
+          docker exec zarqa-ci zarqa version
+      - name: Logs on failure
+        if: failure()
+        run: docker logs zarqa-ci || true
+
+  security:
+    name: Security scans (bandit, pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip bandit pip-audit
+      - name: Static analysis (medium and high severity fail the build)
+        run: bandit -q -r zarqa -ll
+      - name: Known vulnerabilities in dependencies (all extras)
+        run: |
+          python -m venv /tmp/audit && /tmp/audit/bin/pip install -q --upgrade pip
+          /tmp/audit/bin/pip install -q '.[all]'
+          pip-audit --progress-spinner off --path "$(/tmp/audit/bin/python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')" --skip-editable
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

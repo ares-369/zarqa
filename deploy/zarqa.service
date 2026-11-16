@@ -1,0 +1,23 @@
+[Unit]
+Description=Zarqa threat intelligence
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zarqa
+Group=zarqa
+WorkingDirectory=/opt/zarqa
+Environment=ZARQA_HOME=/opt/zarqa
+EnvironmentFile=-/opt/zarqa/.env
+ExecStart=/opt/zarqa/.venv/bin/zarqa serve
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/zarqa/data
+
+[Install]
+WantedBy=multi-user.target
