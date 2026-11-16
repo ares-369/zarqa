@@ -149,6 +149,22 @@ enrich:
   max_per_day: 200           # automatic lookups per day, all enrichers together
   cache_hours: 24
 
+# Brand watch: lookalikes of your domains (docs/brand.md). Without watch:, organization.domains are watched
+# and organization.brands are the names looked for on pages. Lookups go to your DNS resolver, RDAP and,
+# with ct, a public certificate log search.
+brand:
+  watch: []                  # e.g. [{domain: example.com, names: [example, "Example Bank"]}]
+  interval_minutes: 0        # 0 = only when run by hand
+  max_candidates: 3000
+  workers: 16                # lookups and checks at the same time
+  timeout_sec: 10            # per page or registration lookup
+  rdap: true                 # registration date of each lookalike that resolves
+  rdap_per_min: 30           # the public RDAP service rate-limits; keep this modest
+  page_check: true           # fetch its page: title, brand shown, password asked
+  ct: false                  # also search certificate transparency logs for the brand
+  min_score: 0
+  ignore: []                 # lookalikes you own or know are fine
+
 # What to collect. Kinds: feed (RSS/Atom), page, list (text/csv/json/stix), connector. docs/collection.md
 sources: []
 #  - name: gov-advisories

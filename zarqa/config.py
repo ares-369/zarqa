@@ -178,6 +178,8 @@ def load_config() -> Config:
         raise ValueError("jobs.mode: only 'local' is supported in this version")
     from .collect.collector import sources_from
     sources_from(type("C", (), {"raw": data})())            # fail fast on a bad source
+    from .brand.watch import validate as validate_brand
+    validate_brand(data)
     from .intel.relevance import validate as validate_relevance
     validate_relevance(data)
     from .intel.enrich import validate as validate_enrich

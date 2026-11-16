@@ -270,3 +270,20 @@ def test_connector_test_reports_source_errors(tmp_path):
     finally:
         hub.close()
         srv.shutdown()
+
+
+def test_fetch_assumes_utf8_without_a_charset(monkeypatch):
+    import zarqa.collect.fetch as f
+    monkeypatch.setattr(f, "_check_host", lambda url, allow: None)
+    body = ("<html><title>Café " + chr(0x2013) + " login</title><body>ok</body></html>").encode()
+
+    class R:
+        status_code, headers, encoding = 200, {"Content-Type": "text/html"}, "ISO-8859-1"
+
+        def iter_content(self, n):
+            yield body
+
+    class S:
+        def get(self, url, **kw):
+            return R()
+    assert f.fetch_url("https://x.example/", session=S())["title"] == "Café " + chr(0x2013) + " login"

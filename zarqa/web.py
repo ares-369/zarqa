@@ -304,6 +304,31 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
         job = _process_job(r["reports"]) if r["reports"] else None
         return jsonify({**r, "job_id": job})
 
+    # ---- brand watch ----
+    @app.route("/api/brand")
+    def brand():
+        from .brand.watch import settings as bset
+        from .brand.watch import store_for as bstore
+        st = bstore(get_config())
+        mn = request.args.get("min_score", "0")
+        return jsonify({"watch": bset(get_config())["watch"], "last_run": st.last_run(),
+                        "findings": st.findings(status=request.args.get("status") or None,
+                                                min_score=int(mn) if mn.isdigit() else 0, limit=_int("limit", 200, 1, 1000))})
+
+    @app.route("/api/brand/run", methods=["POST"])
+    def brand_run():
+        return jsonify({"job_id": jobs.submit("brand", {"brand": "watch"}, None, task="brand", params={})})
+
+    @app.route("/api/brand/<int:fid>/status", methods=["POST"])
+    def brand_status(fid):
+        from .brand.watch import store_for as bstore
+        b = request.get_json(silent=True) or {}
+        try:
+            bstore(get_config()).set_status(fid, str(b.get("status", "")), str(b.get("note", "")), actor())
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True})
+
     # ---- investigations ----
     @app.route("/api/investigations", methods=["GET", "POST"])
     def investigations():

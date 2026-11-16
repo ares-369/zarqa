@@ -62,7 +62,7 @@ function route() {
   const navTab = { doc: "intel", entity: "entities", add: "intel", inv: "ask" }[tab] || tab;
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === navTab));
   const pages = { overview, intel, doc: () => docPage(arg), entities, entity: () => entityPage(arg), add, sources,
-    ask, inv: () => invPage(arg),
+    ask, inv: () => invPage(arg), brand,
     connectors, jobs, settings };
   const token = ++navToken;
   const view = h("div");
@@ -278,6 +278,35 @@ async function invPage(id) {
   }
   main.append(section("Evidence", "file-search-outline", d.steps.length ? d.steps.map(stepBox) : h("p", { class: "muted" }, "No tool calls.")));
   if (d.status === "running") poll = setInterval(async () => { const x = await api(`/api/investigations/${id}`); if (x.status !== "running" || x.steps.length !== d.steps.length) route(); }, 3000);
+}
+
+// ---------------- Brand watch ----------------
+async function brand() {
+  const st = h("select", {}, ["", "new", "reviewing", "benign", "takedown", "closed"].map((x) => h("option", { value: x }, x || "any status")));
+  const box = h("div");
+  const load = async () => {
+    const d = await api(`/api/brand?status=${st.value}`);
+    const lr = d.last_run || {};
+    fill(box, h("p", { class: "small muted" }, d.watch.length ? `Watching ${d.watch.map((w) => w.domain).join(", ")}. ` : "Nothing to watch: set brand.watch or organization.domains in config.yaml. ",
+      lr.finished ? `Last run ${when(lr.finished)}: ${lr.candidates} names checked, ${lr.resolving} resolve, ${lr.new} new.` : "Not run yet.",
+      lr.errors ? h("span", { class: "bad" }, " " + lr.errors) : null),
+      d.findings.length ? h("table", { class: "wrap cards" }, h("thead", {}, h("tr", {}, ["Score", "Lookalike", "How", "Signals", "Status", ""].map((x) => h("th", {}, x)))),
+        h("tbody", {}, d.findings.map((f) => { const ev = f.evidence || {}; const page = ev.page || {}; const r = ev.rdap || {};
+          const sig = [r.age_days !== undefined ? `registered ${r.age_days} days ago` : null, ev.mx && ev.mx.length ? "mail servers" : null,
+            page.parked ? "parked or for sale" : page.shows_brand && page.shows_brand.length ? "page shows the brand" : null, page.asks_password ? "asks for a password" : null,
+            ev.redirects_to_you ? "redirects to your own domain: likely yours" : page.redirects_to ? `redirects to ${page.redirects_to}` : null, page.title ? `title: ${page.title}` : null].filter(Boolean);
+          return h("tr", { class: f.resolves ? "" : "muted" }, h("td", {}, relBadge(f.score)),
+            h("td", { class: "val" }, f.domain, h("div", { class: "small muted" }, `of ${f.watched}${f.resolves ? "" : " | no longer resolves"}`)),
+            h("td", { class: "small" }, f.technique), h("td", { class: "small" }, sig.join("; "), h("div", { class: "muted" }, (ev.ips || []).join(", "))),
+            h("td", {}, statusBadge(f.status), f.note ? h("div", { class: "small muted" }, f.note) : null),
+            h("td", {}, h("select", { "data-need": "op", onchange: async (e) => { const note = prompt("Note (optional)") || ""; await post(`/api/brand/${f.id}/status`, { status: e.target.value, note }); load(); } },
+              ["new", "reviewing", "benign", "takedown", "closed"].map((x) => h("option", { value: x, selected: x === f.status }, x))))); })))
+        : h("p", { class: "muted" }, "No lookalikes found yet."));
+  };
+  st.addEventListener("change", load);
+  main.append(section("Brand watch", "shield-search", h("p", { class: "muted small" }, "Lookalike domains of your own: generated, resolved, checked (registration date, the page) and scored. Status is yours to set."),
+    h("div", { class: "row" }, st, h("button", { "data-need": "op", onclick: async () => { const r = await post("/api/brand/run"); toast(`Watch started (job ${r.job_id}); it can take a few minutes.`); } }, icon("play"), "Run now")), box));
+  await load();
 }
 
 // ---------------- Sources ----------------

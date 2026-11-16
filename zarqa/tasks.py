@@ -53,7 +53,15 @@ def investigate(p: dict, ctl, jobs) -> dict:
     return {"investigation_id": p["investigation_id"], "status": r.get("status"), "outcome": r.get("outcome")}
 
 
-TASKS: dict[str, Any] = {"ping": ping, "pull": pull, "process": process, "enrich": enrich, "investigate": investigate}
+def brand(p: dict, ctl, jobs) -> dict:
+    from .brand.watch import run
+    from .intel.store import store_for
+    cfg = _cfg()
+    r = run(cfg, kstore=store_for(cfg))
+    return {k: r[k] for k in ("candidates", "resolving", "new")} | {"errors": r["errors"][:5]}
+
+
+TASKS: dict[str, Any] = {"brand": brand, "ping": ping, "pull": pull, "process": process, "enrich": enrich, "investigate": investigate}
 
 
 def run_task(name: str, params: dict, ctl=None, *, jobs=None) -> dict:

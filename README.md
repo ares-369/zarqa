@@ -16,7 +16,7 @@ can send what it finds back to them in standard formats.
 Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days before it arrived.
 
 > **Early development, solo-maintained.** Collection, extraction, enrichment, relevance ranking,
-> investigations and the connector layer work and are tested; brand monitoring and sharing are next. See the
+> investigations, brand watch and the connector layer work and are tested; sharing out is next. See the
 > [roadmap](docs/roadmap.md).
 
 ## What works today
@@ -39,6 +39,8 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
 - **Ask, and get a cited answer.** "What do we know about this IP?" The analyst model searches the store and
   your connectors; every finding cites its evidence, unsupported claims are set aside, and "not enough data"
   is an allowed answer. ([investigations](docs/investigations.md))
+- **Brand watch.** Lookalikes of your domains, resolved and checked: how new they are, whether the page uses
+  your name or asks for a password, or is parked. Scored and tracked with a status. ([brand](docs/brand.md))
 - **Enrichment on request.** Connectors declare their lookups; built-in EPSS and RDAP are opt-in and never
   sent your own or internal values. ([enrichment](docs/enrichment.md))
 - **Connectors, read-only by default.** Writes to another platform go only through a sharing connector
@@ -48,7 +50,7 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
 
 ## Planned
 
-Brand and lookalike-domain monitoring, sharing out (STIX 2.1, TAXII, MISP-format, MCP server),
+Sharing out (STIX 2.1, TAXII, MISP-format, MCP server),
 reports and a daily brief, a demo mode and a published benchmark.
 
 ## Try it

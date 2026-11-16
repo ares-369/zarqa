@@ -53,6 +53,11 @@ All notable changes are listed here. The format follows
   naming indicators not in the cited evidence, are set aside; no supported finding means not_enough_data.
   `zarqa ask`, Ask page, `/api/investigations`.
 
+- Brand watch: lookalikes of your domains (12 techniques), optional certificate-log search, DNS and MX, RDAP
+  registration age (paced), page check (brand shown, password asked, parked, redirects), 0-100 score, tracked
+  findings with status and notes; lookalikes that redirect to your own domain score low. `zarqa brand`,
+  Brand page, extra `dns`.
+
 ### Fixed
 
 - IPv4 addresses at the end of a sentence ("... 10.0.0.5.") were not found by the indicator rules.

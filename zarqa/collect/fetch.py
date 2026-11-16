@@ -160,7 +160,9 @@ def fetch_url(url: str, *, allow_private: bool = False, session=None, timeout: f
         if len(data) > MAX_BYTES:
             raise FetchError("document is larger than 15 MB")
     ctype = r.headers.get("Content-Type", "").lower()
-    raw = data.decode(r.encoding or "utf-8", "replace") if "pdf" not in ctype and data[:5] != b"%PDF-" else ""
+    # without a declared charset the HTTP library assumes Latin-1; the web is mostly UTF-8
+    enc = (r.encoding if "charset=" in ctype else None) or "utf-8"
+    raw = data.decode(enc, "replace") if "pdf" not in ctype and data[:5] != b"%PDF-" else ""
     if want_raw and raw:
         return {"url": url, "title": "", "text": raw[:MAX_TEXT], "raw": raw, "content_type": ctype}
     if raw.lstrip()[:200].lower().startswith(("<?xml", "<rss", "<feed")):
@@ -168,9 +170,9 @@ def fetch_url(url: str, *, allow_private: bool = False, session=None, timeout: f
     if "pdf" in ctype or data[:5] == b"%PDF-":
         title, text = Path(urlparse(url).path).name, pdf_to_text(data)
     elif "html" in ctype or b"<html" in data[:2000].lower():
-        title, text = html_to_text(data.decode(r.encoding or "utf-8", "replace"))
+        title, text = html_to_text(data.decode(enc, "replace"))
     else:
-        title, text = "", data.decode(r.encoding or "utf-8", "replace")
+        title, text = "", data.decode(enc, "replace")
     return {"url": url, "title": title[:300], "text": text[:MAX_TEXT]}
 
 

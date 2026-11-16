@@ -41,6 +41,7 @@
 .mdi-magnify::before{content:"\F0349"}
 .mdi-magnify-plus-outline::before{content:"\F06ED"}
 .mdi-newspaper-variant-outline::before{content:"\F1004"}
+.mdi-play::before{content:"\F040A"}
 .mdi-plus::before{content:"\F0415"}
 .mdi-post::before{content:"\F1008"}
 .mdi-pound::before{content:"\F0423"}
@@ -51,6 +52,7 @@
 .mdi-send::before{content:"\F048A"}
 .mdi-shield-alert-outline::before{content:"\F0ECD"}
 .mdi-shield-check-outline::before{content:"\F0CC8"}
+.mdi-shield-search::before{content:"\F0D9A"}
 .mdi-stethoscope::before{content:"\F04D9"}
 .mdi-stop::before{content:"\F04DB"}
 .mdi-table::before{content:"\F04EB"}

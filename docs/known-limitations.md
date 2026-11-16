@@ -1,7 +1,10 @@
 # Known limitations
 
-- Relevance ranking, investigations, brand monitoring and sharing are not built yet (see the
+- Sharing out (STIX/TAXII/MISP-format export, MCP server), reports and the demo are not built yet (see the
   [roadmap](roadmap.md)).
+- Brand watch does not compare registrants, so a brand's own defensive registrations can score as middling
+  findings; a lookalike that redirects to your domain is recognised. The page check reads HTML only (no
+  scripts), so pages built entirely by scripts look empty.
 - The quote check proves an item is *in* the document, not that the model judged it right: a small local
   model labelled an author's contact email as a victim in testing. Treat model labels as leads.
 - Indicator rules are patterns: they can miss indicators written in unusual ways, and in pasted text they keep

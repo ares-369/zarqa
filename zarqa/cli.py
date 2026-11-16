@@ -262,6 +262,35 @@ def cmd_intel(a) -> int:
         if inv["review"]:
             print(f"  review: {inv['review']}")
         return 0
+    if a.cmd == "brand":
+        from .brand.watch import run as brand_run
+        from .brand.watch import settings as bset
+        from .brand.watch import store_for as bstore
+        if a.action == "run":
+            r = brand_run(cfg, kstore=st)
+            print(f"{r['candidates']} candidates, {r['resolving']} resolve, {r['new']} new"
+                  + (f"; errors: {'; '.join(r['errors'])}" if r["errors"] else ""))
+            if r["errors"] and not bset(cfg)["watch"]:
+                return 1
+        for f in bstore(cfg).findings(limit=a.limit):
+            ev = f["evidence"]
+            page = ev.get("page") or {}
+            extra = []
+            if (ev.get("rdap") or {}).get("age_days") is not None:
+                extra.append(f"registered {ev['rdap']['age_days']} days ago")
+            if page.get("parked"):
+                extra.append("parked or for sale")
+            elif page.get("shows_brand"):
+                extra.append("page shows the brand")
+            if page.get("asks_password"):
+                extra.append("asks for a password")
+            if ev.get("mx"):
+                extra.append("has mail servers")
+            if ev.get("redirects_to_you"):
+                extra = ["redirects to your own domain (likely yours)"]
+            print(f"{f['score']:3} {f['domain']:40} {f['technique']:13} {f['status']:9} "
+                  f"{'' if f['resolves'] else '(gone) '}{', '.join(extra)}")
+        return 0
     if a.cmd == "rescore":
         from .intel.relevance import score_document
         from .llm import privacy_llm
@@ -343,6 +372,9 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_ask = sub.add_parser("ask", help="investigate a question; the answer cites its evidence")
     p_ask.add_argument("question")
     p_ask.add_argument("--max-steps", type=int, default=None)
+    p_br2 = sub.add_parser("brand", help="lookalike domains of your own: list findings, or run the watch now")
+    p_br2.add_argument("action", nargs="?", choices=["list", "run"], default="list")
+    p_br2.add_argument("--limit", type=int, default=50)
     p_rs = sub.add_parser("rescore", help="score documents again against the organization profile and requirements")
     p_rs.add_argument("ids", nargs="*")
     p_rs.add_argument("--limit", type=int, default=200)
@@ -403,7 +435,7 @@ def cli_main(argv: list[str] | None = None) -> None:
     if a.cmd == "bridge":
         bridges[a.kind].run(a)
         return
-    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore", "ask"):
+    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore", "ask", "brand"):
         sys.exit(cmd_intel(a))
     if a.cmd == "hash-password":
         from .auth import hash_password
