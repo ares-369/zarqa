@@ -16,8 +16,9 @@ can send what it finds back to them in standard formats.
 Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days before it arrived.
 
 > **Early development, solo-maintained.** Collection, extraction, enrichment, relevance ranking,
-> investigations, brand watch, sharing, reports and the connector layer work and are tested; a benchmark
-> comes before the first release. See the
+> investigations, brand watch, sharing, reports and the connector layer work and are tested. First
+> benchmark: [benchmarks](docs/benchmarks.md) (without a model it is precise but misses most names and
+> techniques; a small local model adds little). See the
 > [roadmap](docs/roadmap.md).
 
 ## What works today
@@ -66,7 +67,7 @@ From the offline demo (fictional data).
 
 ## Planned
 
-A published extraction benchmark, and the first release.
+A benchmark with a stronger model, and the first release.
 
 ## Try it
 

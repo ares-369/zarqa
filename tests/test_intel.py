@@ -171,6 +171,13 @@ def test_relation_to_a_cve_found_by_the_rules(store):
         ("Tin Heron", "exploits", "CVE-2026-31337")]
 
 
+def test_generic_words_do_not_decide_a_name():
+    from zarqa.intel.model_extract import _name_in
+    q = "GROOVE is first and foremost an aggressive financially motivated criminal organization."
+    assert _name_in("Groove Gang", q) and _name_in("Groove ransomware", q)
+    assert not _name_in("Babuk Gang", q) and not _name_in("The Gang", "a gang of thieves")
+
+
 def test_chunks():
     text = "\n\n".join("p" * 100 for _ in range(50))
     parts = chunks(text, 1000, 3)

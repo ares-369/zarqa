@@ -69,8 +69,12 @@ All notable changes are listed here. The format follows
   by a scripted stand-in for the model (labelled, not AI); UI banner. CI runs it from the wheel and the container.
 - Relations from the model may end at a CVE or technique ID the rules found.
 
+- Extraction benchmark on AnnoCTR (`benchmarks/annoctr/run.py`, results in docs/benchmarks.md).
+
 ### Fixed
 
+- A model's name was dropped when it added a generic word the document did not use ("Groove Gang" for
+  "GROOVE"); found in the benchmark.
 - Investigation checks compared a claim's refanged indicator with defanged evidence text and set true claims
   aside.
 - IPv4 addresses at the end of a sentence ("... 10.0.0.5.") were not found by the indicator rules.

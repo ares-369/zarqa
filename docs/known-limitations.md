@@ -1,6 +1,8 @@
 # Known limitations
 
-- No published benchmark yet (see the [roadmap](roadmap.md)): the tested-on notes in each doc are spot checks.
+- Extraction recall is low without a strong model: on AnnoCTR, rules alone find about 11% of annotated names and
+  26-30% of techniques; a local 7B model added little ([benchmarks](benchmarks.md)). Other features have spot
+  checks only.
 - The TAXII server pages by position: an object added between two page requests can shift a page. It is
   read-only and has no per-collection access control beyond the login or token.
 - Brand watch does not compare registrants, so a brand's own defensive registrations can score as middling

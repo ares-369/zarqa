@@ -83,13 +83,31 @@ def _in(quote: str, text_sq: str) -> bool:
     return len(q) >= 8 and q in text_sq
 
 
+# Words a model adds to a name that the document may not use ("Groove Gang" for "GROOVE").
+_GENERIC = {"gang", "group", "team", "crew", "actor", "actors", "ransomware", "malware", "trojan", "loader",
+            "stealer", "infostealer", "botnet", "campaign", "operation", "the", "family", "apt"}
+
+
+def _core(name: str) -> str:
+    words = attack.norm(name).split()
+    core = [w for w in words if w not in _GENERIC]
+    return " ".join(core) if core else " ".join(words)
+
+
 def _name_in(name: str, quote: str) -> bool:
-    qn = attack.norm(quote)
+    qn = f" {attack.norm(quote)} "
     cands = [name]
     hit = attack.lookup(name)
     if hit:
         cands += [hit["name"], *hit["aliases"]]
-    return any(attack.norm(c) and f" {attack.norm(c)} " in f" {qn} " for c in cands)
+    for c in cands:
+        n = attack.norm(c)
+        if n and f" {n} " in qn:
+            return True
+        core = _core(c)
+        if len(core) >= 4 and f" {core} " in qn:      # the distinctive part must be there, and not too short
+            return True
+    return False
 
 
 def check(reply: dict, text: str, indicators: list[str]) -> dict:
