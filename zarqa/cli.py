@@ -221,6 +221,31 @@ def cmd_intel(a) -> int:
             for r in st.relations(entity_id=e["id"], limit=10):
                 print(f"  {r['src_display']} {r['rel']} {r['dst_display']}  ({r['title'][:50]})")
         return 0
+    if a.cmd == "enrich":
+        from .intel.enrich import enrich
+        hits = [st.entity(int(a.value))] if a.value.isdigit() else st.lookup(a.value)
+        hits = [h for h in hits if h]
+        if not hits:
+            print("not in the store; add it first (zarqa add --values)")
+            return 1
+        rc = 0
+        for e in hits:
+            rows = enrich(cfg, st, e["id"], only=a.only, actor="cli", force=a.force)
+            if not rows:
+                print(f"{e['type']} {e['display']}: no enricher handles this type (enrich: on a connector, or enrich.builtin)")
+            for r in rows:
+                print(f"{e['display']}  {r['enricher']:24} {'ok  ' if r['ok'] else 'FAIL'} {r['summary']}")
+                rc |= 0 if r["ok"] else 1
+        return rc
+    if a.cmd == "rescore":
+        from .intel.relevance import score_document
+        from .llm import privacy_llm
+        llm = privacy_llm(cfg)
+        ids = [int(x) for x in a.ids] or [d["id"] for d in st.documents(status="extracted", limit=a.limit)]
+        for i in ids:
+            r = score_document(cfg, st, i, llm=llm)
+            print(f"document {i}: {r['score'] if r['score'] is not None else '-'}  {'; '.join(r['reasons'])[:200]}")
+        return 0
     if a.cmd == "stats":
         import json as _json
         print(_json.dumps(st.stats(), indent=2))
@@ -290,6 +315,13 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_lk = sub.add_parser("lookup", help="everything known about a value (indicator, CVE, technique or name)")
     p_lk.add_argument("value")
     sub.add_parser("stats", help="counts in the store")
+    p_rs = sub.add_parser("rescore", help="score documents again against the organization profile and requirements")
+    p_rs.add_argument("ids", nargs="*")
+    p_rs.add_argument("--limit", type=int, default=200)
+    p_enr = sub.add_parser("enrich", help="look a stored value (or entity id) up with the configured enrichers")
+    p_enr.add_argument("value")
+    p_enr.add_argument("--only", help="one enricher, e.g. rdap or reputation/lookup_ip")
+    p_enr.add_argument("--force", action="store_true", help="ignore cached results")
     p_br = sub.add_parser("bridge", help="run a generic bridge as a stdio MCP server (used by connectors)")
     br = p_br.add_subparsers(dest="kind", required=True)
     from .bridges import openapi, taxii
@@ -343,7 +375,7 @@ def cli_main(argv: list[str] | None = None) -> None:
     if a.cmd == "bridge":
         bridges[a.kind].run(a)
         return
-    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats"):
+    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore"):
         sys.exit(cmd_intel(a))
     if a.cmd == "hash-password":
         from .auth import hash_password

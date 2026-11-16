@@ -41,6 +41,13 @@ All notable changes are listed here. The format follows
 - UI: Overview counts, Intel feed, document page (what was found, with quotes), Entities, entity page (where
   it was found, relations, what ATT&CK knows), Add, Sources.
 
+- Enrichment: connectors declare which tool looks up which value type (`enrich:`); built-in EPSS and RDAP
+  lookups, off by default, never sent own or internal values; results cached and kept per entity; optional
+  automatic enrichment of new malicious indicators with a daily cap. `zarqa enrich`.
+- Relevance: organization profile and intelligence requirements; every report scored 0-100 with the reasons
+  (products, brands, domains, sectors and regions named or targeted, known-exploited and likely-exploited CVEs,
+  requirements matched); optional analyst-model check; documents tagged `pir:<name>`. `zarqa rescore`.
+
 ### Fixed
 
 - IPv4 addresses at the end of a sentence ("... 10.0.0.5.") were not found by the indicator rules.

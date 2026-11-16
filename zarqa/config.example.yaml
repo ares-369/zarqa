@@ -127,6 +127,28 @@ extract:
 intel:
   ttl_days: {ipv4: 30, ipv6: 30, url: 60, domain: 90, email: 180}
 
+# Who you are (above, organization:) and what you need to know. A requirement matches a document when one of
+# its terms is in it; the document is tagged pir:<name> and scores higher. docs/relevance.md
+requirements: []
+#  - name: ransomware
+#    question: "Which ransomware groups are hitting our sector, and how do they get in?"
+#    terms: [ransomware, extortion, data leak site]
+
+relevance:
+  model: false               # true: the analyst model confirms and explains each score (only for documents
+                             # the rules matched); the organization profile is then sent to that model
+
+# Enrichment: look values up in other services. Only when asked, or for new malicious indicators if auto.
+# docs/enrichment.md
+enrich:
+  builtin:
+    epss: false              # exploit likelihood for CVEs (api.first.org)
+    rdap: false              # registration data for domains and IPs (rdap.org)
+  auto: false
+  auto_types: [ipv4, ipv6, domain, url, sha256, sha1, md5]
+  max_per_day: 200           # automatic lookups per day, all enrichers together
+  cache_hours: 24
+
 # What to collect. Kinds: feed (RSS/Atom), page, list (text/csv/json/stix), connector. docs/collection.md
 sources: []
 #  - name: gov-advisories
@@ -140,6 +162,16 @@ sources: []
 #    format: text
 #    type: ipv4
 #    interval_minutes: 360
+#  - name: known-exploited          # tags CVEs "kev"; relevance counts them
+#    kind: list
+#    url: "<a JSON catalogue of known exploited vulnerabilities>"
+#    format: json
+#    list_key: vulnerabilities
+#    value_field: cveID
+#    type: cve
+#    tags: [kev]
+#    context: ""
+#    interval_minutes: 720
 #  - name: platform
 #    kind: connector
 #    connector: sharing-server

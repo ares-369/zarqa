@@ -34,10 +34,23 @@ def process_documents(cfg, doc_ids: list[int], *, store: KnowledgeStore | None =
     out = []
     for d in doc_ids:
         try:
-            out.append(process(store, d, cfg=cfg, llm=llm, use_model=use_model))
+            r = process(store, d, cfg=cfg, llm=llm, use_model=use_model)
         except Exception as exc:          # one bad document must not stop the rest
             store.update_document(d, status="error", error=str(exc)[:500])
             out.append({"document_id": d, "error": str(exc)[:300]})
+            continue
+        try:
+            from .relevance import score_document
+            r["relevance"] = score_document(cfg, store, d, llm=llm)
+        except Exception as exc:
+            r["relevance"] = {"error": str(exc)[:200]}
+        from .enrich import auto_candidates, enrich
+        for eid in auto_candidates(store, cfg, d):
+            try:
+                enrich(cfg, store, eid, actor="auto")
+            except Exception:
+                pass
+        out.append(r)
     return out
 
 

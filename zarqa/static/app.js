@@ -102,28 +102,32 @@ async function overview() {
 }
 
 // ---------------- Intel: documents ----------------
+const relBadge = (r) => r === null || r === undefined ? h("span", { class: "badge muted", title: "not scored" }, "-")
+  : h("span", { class: "badge rel " + (r >= 70 ? "rel-high" : r >= 30 ? "rel-mid" : "rel-low"), title: "relevance to you" }, r);
 function docTable(rows) {
-  return h("table", { class: "wrap cards" }, h("thead", {}, h("tr", {}, ["Collected", "Title", "Source", "Status"].map((x) => h("th", {}, x)))),
-    h("tbody", {}, rows.map((d) => h("tr", {}, h("td", { class: "small muted" }, when(d.fetched)),
+  return h("table", { class: "wrap cards" }, h("thead", {}, h("tr", {}, ["Rel.", "Collected", "Title", "Source", "Status"].map((x) => h("th", {}, x)))),
+    h("tbody", {}, rows.map((d) => h("tr", {}, h("td", { title: d.relevance_reason || "" }, relBadge(d.relevance)), h("td", { class: "small muted" }, when(d.fetched)),
       h("td", {}, h("a", { href: `#doc/${d.id}` }, d.title || "(untitled)"), d.summary ? h("div", { class: "muted small clamp" }, d.summary) : null,
-        d.review ? h("div", { class: "warn small" }, icon("alert-outline"), " ", d.review) : null),
+        d.review ? h("div", { class: "warn small" }, icon("alert-outline"), " ", d.review) : null,
+        d.tags.filter((t) => t.startsWith("pir:")).map((t) => h("span", { class: "badge pir" }, t.slice(4)))),
       h("td", { class: "small" }, d.source), h("td", {}, h("span", { class: "badge st-" + d.status }, d.status), " ", d.method ? methodBadge(d.method) : null)))));
 }
 
 async function intel() {
   const q = h("input", { class: "grow", placeholder: "Search titles and text" });
   const status = h("select", {}, ["", "new", "extracted", "error"].map((x) => h("option", { value: x }, x || "any status")));
+  const order = h("select", {}, [["newest", "newest first"], ["relevance", "most relevant first"]].map(([v, l]) => h("option", { value: v }, l)));
   const box = h("div");
   let offset = 0;
   const load = async () => {
-    const rows = await api(`/api/documents?limit=50&offset=${offset}&q=${encodeURIComponent(q.value)}&status=${status.value}`);
+    const rows = await api(`/api/documents?limit=50&offset=${offset}&q=${encodeURIComponent(q.value)}&status=${status.value}&order=${order.value}`);
     fill(box, rows.length ? docTable(rows) : h("p", { class: "muted" }, "No documents."),
       h("div", { class: "row" }, offset > 0 && h("button", { class: "ghost", onclick: () => { offset = Math.max(0, offset - 50); load(); } }, icon("chevron-left"), "Newer"),
         rows.length === 50 && h("button", { class: "ghost", onclick: () => { offset += 50; load(); } }, "Older", icon("chevron-right"))));
   };
   q.addEventListener("keydown", (e) => { if (e.key === "Enter") { offset = 0; load(); } });
-  status.addEventListener("change", () => { offset = 0; load(); });
-  main.append(section("Intel", "newspaper-variant-outline", h("div", { class: "row" }, q, status,
+  [status, order].forEach((x) => x.addEventListener("change", () => { offset = 0; load(); }));
+  main.append(section("Intel", "newspaper-variant-outline", h("div", { class: "row" }, q, status, order,
     h("a", { href: "#add", "data-need": "op" }, h("button", {}, icon("plus"), "Add"))), box));
   await load();
 }
@@ -141,7 +145,11 @@ async function docPage(id) {
       h("button", { "data-need": "op", class: "ghost", onclick: async () => { await post(`/api/documents/${id}/process`); toast("Processing; refresh in a moment."); } }, icon("refresh"), "Process again")),
     d.review ? h("p", { class: "warn" }, icon("alert-outline"), " ", d.review) : null,
     d.error ? h("p", { class: "bad small" }, d.error) : null,
-    d.summary ? h("p", {}, d.summary, h("span", { class: "muted small" }, "  (model summary)")) : null));
+    d.summary ? h("p", {}, d.summary, h("span", { class: "muted small" }, "  (model summary)")) : null,
+    h("div", { class: "row" }, h("b", {}, "Relevance to you "), relBadge(d.relevance),
+      d.tags.filter((t) => t.startsWith("pir:")).map((t) => h("span", { class: "badge pir" }, "requirement " + t.slice(4))),
+      h("button", { "data-need": "op", class: "ghost", onclick: async (ev) => { ev.target.disabled = true; try { await post(`/api/documents/${id}/relevance`); route(); } finally { ev.target.disabled = false; } } }, icon("target"), "Score again")),
+    d.relevance_reason ? h("ul", { class: "small" }, d.relevance_reason.split("; ").map((x) => h("li", {}, x))) : null));
   const groups = Object.entries(byType).sort();
   main.append(section("Found in this document", "tag-multiple-outline", groups.length ? groups.map(([t, m]) => h("div", { class: "found" },
     h("h3", {}, typeBadge(t), ` ${m.size}`),
@@ -188,6 +196,14 @@ async function entityPage(id) {
     e.note ? h("p", { class: "small" }, e.note) : null,
     h("div", { class: "row", "data-need": "op" }, [["active", "check"], ["false_positive", "close-circle-outline"], ["allowlisted", "shield-check-outline"]].map(([st, ic]) =>
       e.status !== st && h("button", { class: "ghost", onclick: async () => { const note = st === "active" ? "" : (prompt("Note (why)") || ""); await post(`/api/entities/${id}/status`, { status: st, note }); route(); } }, icon(ic), "Mark " + st.replace("_", " "))))));
+  const enrBox = h("div");
+  main.append(section("Enrichment", "magnify-plus-outline",
+    e.enrichers.length ? h("div", { class: "row", "data-need": "op" }, e.enrichers.map((n) => h("button", { class: "ghost", onclick: async (ev) => {
+      ev.target.disabled = true; const r = await post(`/api/entities/${id}/enrich`, { only: n, force: true }); toast(`Looking up with ${n} (job ${r.job_id}); refresh in a moment.`); } }, icon("magnify"), n)))
+      : h("p", { class: "muted small" }, "No enricher handles this type. Add enrich: to a connector, or turn on a built-in under enrich.builtin (docs/enrichment.md)."),
+    e.enrichments.length ? h("table", { class: "wrap cards" }, h("tbody", {}, e.enrichments.map((x) => h("tr", {},
+      h("td", {}, h("b", {}, x.enricher), h("div", { class: "small muted" }, when(x.ts))), h("td", { class: x.ok ? "" : "bad" }, x.summary),
+      h("td", {}, h("details", {}, h("summary", {}, "data"), h("pre", {}, typeof x.data === "string" ? x.data : JSON.stringify(x.data, null, 2)))))))) : enrBox));
   if (a && a.n) {
     main.append(section("Known from ATT&CK", "chess-knight", a.a && a.a.length ? h("p", { class: "small" }, "Also called: ", a.a.join(", ")) : null,
       a.tech && a.tech.length ? h("details", {}, h("summary", {}, `${a.tech.length} techniques`), h("ul", { class: "small" }, a.tech.map((x) => h("li", {}, `${x.id} ${x.name}`)))) : null,

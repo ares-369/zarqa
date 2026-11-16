@@ -144,7 +144,8 @@ class KnowledgeStore:
         return _doc(r) if r else None
 
     def documents(self, *, status: str | None = None, source: str | None = None, q: str = "", limit: int = 50,
-                  offset: int = 0, min_relevance: int | None = None) -> list[dict]:
+                  offset: int = 0, min_relevance: int | None = None, order: str = "newest",
+                  tag: str | None = None) -> list[dict]:
         where, args = [], []
         if status:
             where.append("status=?")
@@ -158,11 +159,15 @@ class KnowledgeStore:
         if min_relevance is not None:
             where.append("relevance >= ?")
             args.append(int(min_relevance))
+        if tag:
+            where.append("tags LIKE ?")
+            args.append(f'%"{tag}"%')
         # fixed column names; every value is a bound parameter
         sql = f"SELECT {', '.join(_DOC_COLS)} FROM documents"  # nosec B608
         if where:
             sql += " WHERE " + " AND ".join(where)
-        sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+        sql += (" ORDER BY COALESCE(relevance, -1) DESC, id DESC" if order == "relevance" else " ORDER BY id DESC")
+        sql += " LIMIT ? OFFSET ?"
         with self._conn() as c:
             rows = c.execute(sql, (*args, int(limit), int(offset))).fetchall()
         return [_doc(r) for r in rows]
@@ -331,6 +336,16 @@ class KnowledgeStore:
         keys = ("id", "src", "src_type", "src_display", "rel", "dst", "dst_type", "dst_display", "document_id",
                 "snippet", "method", "title")
         return [dict(zip(keys, r, strict=True)) for r in rows]
+
+    def add_tags(self, entity_id: int, tags: list[str]) -> None:
+        """Add tags without counting it as a new sighting."""
+        with self._lock, self._conn() as c:
+            r = c.execute("SELECT tags FROM entities WHERE id=?", (int(entity_id),)).fetchone()
+            if r is None:
+                return
+            merged = sorted(set(json.loads(r[0] or "[]")) | {str(t)[:40] for t in tags})
+            c.execute("UPDATE entities SET tags=? WHERE id=?", (_j(merged), int(entity_id)))
+            c.commit()
 
     def set_status(self, entity_id: int, status: str, note: str = "") -> None:
         if status not in ("active", "expired", "false_positive", "allowlisted"):

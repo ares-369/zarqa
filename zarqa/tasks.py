@@ -37,7 +37,16 @@ def process(p: dict, ctl, jobs) -> dict:
     return {"processed": len(out), "errors": sum(1 for r in out if r.get("error"))}
 
 
-TASKS: dict[str, Any] = {"ping": ping, "pull": pull, "process": process}
+def enrich(p: dict, ctl, jobs) -> dict:
+    from .intel.enrich import enrich as run
+    from .intel.store import store_for
+    cfg = _cfg()
+    r = run(cfg, store_for(cfg), int(p["entity_id"]), only=p.get("only"), actor=p.get("actor", ""),
+            force=bool(p.get("force")))
+    return {"entity_id": p["entity_id"], "results": r}
+
+
+TASKS: dict[str, Any] = {"ping": ping, "pull": pull, "process": process, "enrich": enrich}
 
 
 def run_task(name: str, params: dict, ctl=None, *, jobs=None) -> dict:

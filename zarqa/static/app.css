@@ -50,6 +50,8 @@ td.val{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.82rem;
 .found h3{margin:.8rem 0 .3rem;font-size:.9rem}h3{font-size:.92rem}
 a.kpi-card{color:var(--fg)}a.kpi-card:hover{border-color:var(--accent)}
 details summary{cursor:pointer;color:var(--muted)}.warn{color:var(--amber)}
+.rel{font-weight:600;min-width:2.2rem;justify-content:center}.rel-high{color:var(--red);border-color:var(--red)}
+.rel-mid{color:var(--amber);border-color:var(--amber)}.rel-low{color:var(--grey)}.pir{color:var(--accent);border-color:var(--accent);margin-left:.3rem}
 .clamp{display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media (max-width:640px){nav .lbl{display:none}main{padding:0 .5rem}
 table.cards,.cards tbody,.cards tr,.cards td{display:block;width:100%}.cards thead{display:none}

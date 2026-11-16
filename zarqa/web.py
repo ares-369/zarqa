@@ -180,7 +180,8 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
             return jsonify(st.documents(status=request.args.get("status") or None,
                                         source=request.args.get("source") or None, q=request.args.get("q", "")[:200],
                                         limit=_int("limit", 50, 1, 200), offset=_int("offset", 0, 0, 10**7),
-                                        min_relevance=int(mr) if mr and mr.isdigit() else None))
+                                        min_relevance=int(mr) if mr and mr.isdigit() else None,
+                                        order=request.args.get("order", "newest"), tag=request.args.get("tag") or None))
         from .collect.fetch import FetchError
         from .intel.service import collector
         b = request.get_json(silent=True) or {}
@@ -214,6 +215,20 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
         b = request.get_json(silent=True) or {}
         return jsonify({"job_id": _process_job([doc_id], b.get("use_model"))})
 
+    @app.route("/api/documents/<int:doc_id>/relevance", methods=["POST"])
+    def document_relevance(doc_id):
+        from .intel.relevance import score_document
+        from .llm import privacy_llm
+        if not kstore().document(doc_id, with_text=False):
+            return jsonify({"error": "not found"}), 404
+        return jsonify(score_document(get_config(), kstore(), doc_id, llm=privacy_llm(get_config())))
+
+    @app.route("/api/profile")
+    def org_profile():
+        from .intel.relevance import has_profile, profile
+        p = profile(get_config())
+        return jsonify({**p, "set": has_profile(p)})
+
     @app.route("/api/entities")
     def entities():
         return jsonify(kstore().entities(etype=request.args.get("type") or None, q=request.args.get("q", "")[:200],
@@ -232,7 +247,19 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
         if ref and "tech" in ref:
             ref = {**ref, "tech": [{"id": t, "name": (attack.technique(t) or {}).get("name", "")} for t in ref["tech"]]}
             ref["sw"] = [{"id": x, "name": (attack.known(x) or {}).get("n", "")} for x in ref.get("sw", [])]
-        return jsonify({**e, "attack": ref, "mentions": st.mentions(entity_id=eid), "relations": st.relations(entity_id=eid)})
+        from .intel.enrich import Results, enrichers_for
+        return jsonify({**e, "attack": ref, "mentions": st.mentions(entity_id=eid), "relations": st.relations(entity_id=eid),
+                        "enrichments": Results(st).for_entity(eid),
+                        "enrichers": [x["name"] for x in enrichers_for(get_config(), hub(), e["type"])]})
+
+    @app.route("/api/entities/<int:eid>/enrich", methods=["POST"])
+    def entity_enrich(eid):
+        if not kstore().entity(eid):
+            return jsonify({"error": "not found"}), 404
+        b = request.get_json(silent=True) or {}
+        jid = jobs.submit("enrich", {"entity": eid, "only": b.get("only")}, None, task="enrich",
+                          params={"entity_id": eid, "only": b.get("only"), "actor": actor(), "force": bool(b.get("force"))})
+        return jsonify({"job_id": jid})
 
     @app.route("/api/entities/<int:eid>/status", methods=["POST"])
     def entity_status(eid):

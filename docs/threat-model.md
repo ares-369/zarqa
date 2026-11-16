@@ -24,9 +24,12 @@ What Zarqa protects, from whom, and how. This page grows with each phase.
 | Tampering with the record of what was called | Append-only audit log with a SHA-256 hash chain. |
 | Internal names sent to the web | The web bridge refuses queries with private IPs, emails or listed internal terms. |
 | Server-side request forgery through a URL | Only http(s); private, loopback, link-local and reserved addresses refused on every redirect hop; the checked address is pinned. |
+| Own or internal values sent to a public lookup service | Built-in enrichers refuse internal addresses, `privacy.terms`, `privacy.patterns` and `organization.domains`; they are off by default. |
+| A feed's API key sent to another host | `headers_env` headers are not sent after a redirect to a different host. |
 | Script injection through collected content | The UI sets text with `textContent` only and has a strict content security policy with no inline scripts. |
+
+| Prompt injection in collected pages and reports | Document text reaches a model only inside untrusted-data markers; every document is scanned for text addressing an AI and marked for review; models cannot add indicators and every item they return must quote the document. |
 
 ## Threats planned for later phases
 
-- Prompt injection in collected pages and reports (content will be marked as untrusted data, and
-  checked for injection patterns before it reaches a model).
+- Investigations and sharing (phases 7 and 9) will add their own rows here.

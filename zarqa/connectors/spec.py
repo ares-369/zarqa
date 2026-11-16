@@ -75,7 +75,7 @@ class ConnectorSpec:
     enabled: bool = True
     verify_tls: bool = True
     access: list[str] = field(default_factory=list)   # who may use it: group, role:<r>, user:<u>; empty = all
-    raw_fields: dict[str, str] = field(default_factory=dict)   # "fields:": kind of value -> field name (alert triage)
+    enrich: list[dict] = field(default_factory=list)   # [{types, tool, argument, arguments}] value lookups
 
     def public(self) -> dict[str, Any]:
         """Safe view for the UI/API (no secrets, no env values)."""
@@ -86,6 +86,7 @@ class ConnectorSpec:
             "allow": self.allow, "deny": self.deny, "allow_write": self.allow_write, "access": self.access,
             "rate_per_min": self.rate_per_min, "enabled": self.enabled,
             "query_notes": bool(self.query_notes), "query_examples": len(self.query_examples),
+            "enrich": [{"types": e["types"], "tool": e["tool"]} for e in self.enrich],
         }
 
 
@@ -99,6 +100,26 @@ def _notes(name: str, raw: dict[str, Any]) -> str:
             raise ValueError(f"connector {name}: query_notes_file {p} does not exist")
         text = (text + "\n" + p.read_text(errors="replace")).strip()
     return text[:6000]
+
+
+ENRICH_TYPES = ("ipv4", "ipv6", "domain", "url", "email", "md5", "sha1", "sha256", "cve")
+
+
+def _enrich(name: str, items) -> list[dict]:
+    """``enrich:`` maps value types to a lookup tool: which tool to call and which argument gets the value."""
+    out = []
+    for e in items or []:
+        if not isinstance(e, dict) or not e.get("tool") or not e.get("argument"):
+            raise ValueError(f"connector {name}: each enrich entry needs tool and argument")
+        types = [str(t) for t in e.get("types") or []]
+        bad = [t for t in types if t not in ENRICH_TYPES]
+        if not types or bad:
+            raise ValueError(f"connector {name}: enrich types must be some of {ENRICH_TYPES}")
+        extra = e.get("arguments") or {}
+        if not isinstance(extra, dict):
+            raise ValueError(f"connector {name}: enrich arguments must be a mapping")
+        out.append({"types": types, "tool": str(e["tool"]), "argument": str(e["argument"]), "arguments": extra})
+    return out
 
 
 def _spec(raw: dict[str, Any]) -> ConnectorSpec:
@@ -150,7 +171,7 @@ def _spec(raw: dict[str, Any]) -> ConnectorSpec:
         enabled=bool(raw.get("enabled", True)),
         verify_tls=bool(raw.get("verify_tls", True)),
         access=[a.strip() for a in access],
-        raw_fields={str(k): str(v) for k, v in (raw.get("fields") or {}).items()},
+        enrich=_enrich(name, raw.get("enrich")),
     )
 
 
