@@ -58,6 +58,11 @@ All notable changes are listed here. The format follows
   findings with status and notes; lookalikes that redirect to your own domain score low. `zarqa brand`,
   Brand page, extra `dns`.
 
+- Sharing: STIX 2.1 export (stable ids, actors with aliases, relations with their sentence, reports with
+  the source link) and MISP-format events; read-only TAXII 2.1 server (`share.taxii`, optional token);
+  person-initiated pushes through sharing connectors (`share.targets`, `zarqa share`); `zarqa export`.
+- Zarqa as an MCP server: `zarqa mcp` and `POST /mcp` (token role viewer by default; `ask` needs operator).
+
 ### Fixed
 
 - IPv4 addresses at the end of a sentence ("... 10.0.0.5.") were not found by the indicator rules.

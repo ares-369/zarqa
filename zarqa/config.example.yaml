@@ -165,6 +165,23 @@ brand:
   min_score: 0
   ignore: []                 # lookalikes you own or know are fine
 
+# Sharing out (docs/sharing.md): STIX 2.1 and MISP-format exports always work (UI, API, CLI).
+share:
+  taxii: false               # read-only TAXII 2.1 server at /taxii2/ (behind login, or the token below)
+  taxii_token_env: ""        # e.g. ZARQA_TAXII_TOKEN in .env, for platforms that pull
+  targets: []                # pushes through a sharing connector, chosen by a person
+#    - name: platform
+#      connector: platform-out    # roles [sharing], allow_write: true, the tool in tools.allow
+#      tool: add_bundle
+#      argument: bundle
+#      format: stix               # stix | misp
+
+# Zarqa as an MCP server: `zarqa mcp` (stdio) or POST /mcp (behind login, or this token).
+mcp:
+  token_env: ""              # e.g. ZARQA_MCP_TOKEN in .env
+  token_role: viewer         # viewer: read tools; operator: also ask
+  expose: []                 # limit to these tool names (empty = all)
+
 # What to collect. Kinds: feed (RSS/Atom), page, list (text/csv/json/stix), connector. docs/collection.md
 sources: []
 #  - name: gov-advisories

@@ -102,6 +102,23 @@ async function overview() {
     h("tr", {}, h("td", {}, r), h("td", {}, c.provider || "ollama"), h("td", { class: "muted" }, c.model || "provider default")))))));
 }
 
+// ---------------- sharing ----------------
+let _targets = null;
+function shareBox(what) {
+  const box = h("span", { class: "row", "data-need": "op" });
+  (async () => {
+    _targets = _targets || await api("/api/share/targets").catch(() => []);
+    if (!_targets.length) return;
+    const sel = h("select", {}, _targets.map((t) => h("option", { value: t.name }, `${t.name} (${t.format})`)));
+    fill(box, sel, h("button", { class: "ghost", onclick: async (e) => {
+      if (!confirm(`Send this to ${sel.value}? It is written to another platform and recorded in the audit log.`)) return;
+      e.target.disabled = true;
+      try { const r = await post("/api/share", { target: sel.value, ...what }); toast(r.ok ? `Sent ${r.items} items to ${r.target}.` : `Failed: ${r.text}`); }
+      finally { e.target.disabled = false; } } }, icon("share-variant"), "Share"));
+  })();
+  return box;
+}
+
 // ---------------- Intel: documents ----------------
 const relBadge = (r) => r === null || r === undefined ? h("span", { class: "badge muted", title: "not scored" }, "-")
   : h("span", { class: "badge rel " + (r >= 70 ? "rel-high" : r >= 30 ? "rel-mid" : "rel-low"), title: "relevance to you" }, r);
@@ -143,7 +160,10 @@ async function docPage(id) {
     h("div", { class: "small muted" }, `${d.source} | ${d.kind} | collected ${when(d.fetched)}`, d.published ? ` | published ${d.published}` : ""),
     d.url ? h("div", { class: "small" }, h("a", { href: d.url, rel: "noopener noreferrer", target: "_blank" }, d.url)) : null,
     h("div", { class: "row" }, h("span", { class: "badge st-" + d.status }, d.status), d.method ? methodBadge(d.method) : null,
-      h("button", { "data-need": "op", class: "ghost", onclick: async () => { await post(`/api/documents/${id}/process`); toast("Processing; refresh in a moment."); } }, icon("refresh"), "Process again")),
+      h("button", { "data-need": "op", class: "ghost", onclick: async () => { await post(`/api/documents/${id}/process`); toast("Processing; refresh in a moment."); } }, icon("refresh"), "Process again"),
+      h("a", { href: `/api/export/stix?document=${id}&download=1` }, h("button", { class: "ghost" }, icon("download"), "STIX")),
+      h("a", { href: `/api/export/misp?document=${id}&download=1` }, h("button", { class: "ghost" }, icon("download"), "MISP format")),
+      shareBox({ document_id: Number(id) })),
     d.review ? h("p", { class: "warn" }, icon("alert-outline"), " ", d.review) : null,
     d.error ? h("p", { class: "bad small" }, d.error) : null,
     d.summary ? h("p", {}, d.summary, h("span", { class: "muted small" }, "  (model summary)")) : null,

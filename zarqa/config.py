@@ -178,13 +178,15 @@ def load_config() -> Config:
         raise ValueError("jobs.mode: only 'local' is supported in this version")
     from .collect.collector import sources_from
     sources_from(type("C", (), {"raw": data})())            # fail fast on a bad source
+    from .share.push import validate as validate_share
+    validate_share(data)
     from .brand.watch import validate as validate_brand
     validate_brand(data)
     from .intel.relevance import validate as validate_relevance
     validate_relevance(data)
     from .intel.enrich import validate as validate_enrich
     validate_enrich(data.get("enrich") or {})
-    for sec in ("collect", "extract", "intel", "web", "relevance"):
+    for sec in ("collect", "extract", "intel", "web", "relevance", "mcp"):
         if not isinstance(data.get(sec) or {}, dict):
             raise ValueError(f"{sec}: must be a mapping")
     org = data.get("organization") or {}

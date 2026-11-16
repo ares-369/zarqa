@@ -33,6 +33,5 @@ What Zarqa protects, from whom, and how. This page grows with each phase.
 | Brand watch fetches attacker pages | The safe fetcher (no scripts run, private addresses refused, size cap); turn off with `brand.page_check: false`. |
 | A model states something no source says | Investigation findings must cite successful evidence, and indicators named in a finding must be in that evidence; the rest is set aside and listed. |
 
-## Threats planned for later phases
-
-- Sharing (phase 9) will add its own rows here.
+| A pulling platform gets more than intended | TAXII is off by default, read-only, and its token is valid for TAXII paths only. |
+| A connected agent starts work through MCP | The MCP token is viewer by default; `ask` needs operator and is marked as not read-only. |

@@ -304,6 +304,80 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
         job = _process_job(r["reports"]) if r["reports"] else None
         return jsonify({**r, "job_id": job})
 
+    # ---- sharing out ----
+    from .share.taxii_server import blueprint as taxii_bp
+    app.register_blueprint(taxii_bp(kstore, get_config))
+
+    def _export_args():
+        d = request.args.get("document")
+        ids = [int(x) for x in request.args.get("entities", "").split(",") if x.strip().isdigit()]
+        return (int(d) if d and d.isdigit() else None), ids
+
+    @app.route("/api/export/<fmt>")
+    def export_any(fmt):
+        from .share.misp import event
+        from .share.stix_out import export
+        doc, ids = _export_args()
+        try:
+            if fmt == "stix":
+                body = export(kstore(), producer_name=get_config().instance_name, document_id=doc, entity_ids=ids or None,
+                              since=request.args.get("since") or None,
+                              types=[t for t in request.args.get("types", "").split(",") if t] or None,
+                              min_confidence=_int("min_confidence", 0, 0, 100), limit=_int("limit", 5000, 1, 50_000))
+            elif fmt == "misp":
+                if doc is None and not ids:
+                    return jsonify({"error": "choose document= or entities="}), 400
+                body = event(kstore(), info=request.args.get("info", ""), document_id=doc, entity_ids=ids or None,
+                             producer=get_config().instance_name)
+            else:
+                return jsonify({"error": "format must be stix or misp"}), 400
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 404
+        r = jsonify(body)
+        name = f"zarqa-{'document-' + str(doc) if doc is not None else 'export'}.{fmt}.json"
+        if request.args.get("download"):
+            r.headers["Content-Disposition"] = f'attachment; filename="{name}"'
+        return r
+
+    @app.route("/api/share/targets")
+    def share_targets():
+        from .share.push import targets
+        return jsonify([{"name": t["name"], "format": t.get("format", "stix"), "connector": t["connector"]}
+                        for t in targets(get_config())])
+
+    @app.route("/api/share", methods=["POST"])
+    def share_push():
+        from .connectors.hub import ToolCallError
+        from .share.push import push
+        b = request.get_json(silent=True) or {}
+        doc = b.get("document_id")
+        try:
+            r = push(get_config(), kstore(), str(b.get("target", "")), actor=actor(),
+                     document_id=int(doc) if doc is not None else None,
+                     entity_ids=[int(x) for x in b.get("entity_ids") or []][:5000] or None, hub=hub())
+        except (ValueError, ToolCallError) as exc:
+            return jsonify({"error": str(exc)[:400]}), 400
+        return jsonify(r)
+
+    from .mcp_server import build as build_mcp
+
+    def _role():
+        return getattr(g, "zarqa_role", "viewer")
+    mcp_srv = build_mcp(cfg, jobs, role_of=_role)
+
+    @app.route("/mcp", methods=["POST", "GET", "DELETE"])
+    def mcp_http():
+        if request.method != "POST":
+            return jsonify({"error": "use POST with a JSON-RPC message"}), 405
+        msg = request.get_json(silent=True)
+        if isinstance(msg, list):
+            replies = [r for r in (mcp_srv.handle(m) for m in msg if isinstance(m, dict)) if r]
+            return (jsonify(replies), 200) if replies else ("", 202)
+        if not isinstance(msg, dict):
+            return jsonify({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "parse error"}}), 400
+        reply = mcp_srv.handle(msg)
+        return (jsonify(reply), 200) if reply else ("", 202)
+
     # ---- brand watch ----
     @app.route("/api/brand")
     def brand():

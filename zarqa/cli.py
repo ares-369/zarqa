@@ -262,6 +262,30 @@ def cmd_intel(a) -> int:
         if inv["review"]:
             print(f"  review: {inv['review']}")
         return 0
+    if a.cmd == "export":
+        from .share.push import build
+        from .share.stix_out import export
+        if a.format == "misp" and a.document is None and not a.entity:
+            print("misp needs --document or --entity")
+            return 2
+        if a.document is None and not a.entity and a.format == "stix":
+            body = export(st, producer_name=cfg.instance_name, since=a.since, types=a.type or None,
+                          min_confidence=a.min_confidence)
+        else:
+            body = build(cfg, st, a.format, document_id=a.document, entity_ids=a.entity or None)
+        text = json.dumps(body, indent=2, ensure_ascii=False)
+        if a.out:
+            Path(a.out).write_text(text, encoding="utf-8")
+            n = len(body.get("objects") or (body.get("Event") or {}).get("Attribute") or [])
+            print(f"wrote {a.out} ({n} objects)")
+        else:
+            print(text)
+        return 0
+    if a.cmd == "share":
+        from .share.push import push
+        r = push(cfg, st, a.target, actor="cli", document_id=a.document, entity_ids=a.entity or None)
+        print(f"{a.target}: {'ok' if r['ok'] else 'FAILED'}, {r['items']} items; {r['text'][:200]}")
+        return 0 if r["ok"] else 1
     if a.cmd == "brand":
         from .brand.watch import run as brand_run
         from .brand.watch import settings as bset
@@ -372,6 +396,19 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_ask = sub.add_parser("ask", help="investigate a question; the answer cites its evidence")
     p_ask.add_argument("question")
     p_ask.add_argument("--max-steps", type=int, default=None)
+    p_ex = sub.add_parser("export", help="write a STIX 2.1 bundle or a MISP-format event")
+    p_ex.add_argument("format", choices=["stix", "misp"])
+    p_ex.add_argument("--document", type=int, help="one document and what was found in it")
+    p_ex.add_argument("--entity", type=int, action="append", help="an entity id (repeatable)")
+    p_ex.add_argument("--since", help="stix, whole store: entities last seen at or after this ISO time")
+    p_ex.add_argument("--type", action="append", help="stix, whole store: entity types (repeatable)")
+    p_ex.add_argument("--min-confidence", type=int, default=0)
+    p_ex.add_argument("--out", help="file to write (default: print)")
+    p_sh = sub.add_parser("share", help="push a document or entities to a share target (share.targets)")
+    p_sh.add_argument("target")
+    p_sh.add_argument("--document", type=int)
+    p_sh.add_argument("--entity", type=int, action="append")
+    sub.add_parser("mcp", help="serve Zarqa as an MCP server on stdio")
     p_br2 = sub.add_parser("brand", help="lookalike domains of your own: list findings, or run the watch now")
     p_br2.add_argument("action", nargs="?", choices=["list", "run"], default="list")
     p_br2.add_argument("--limit", type=int, default=50)
@@ -435,8 +472,12 @@ def cli_main(argv: list[str] | None = None) -> None:
     if a.cmd == "bridge":
         bridges[a.kind].run(a)
         return
-    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore", "ask", "brand"):
+    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore", "ask", "brand", "export", "share"):
         sys.exit(cmd_intel(a))
+    if a.cmd == "mcp":
+        from .mcp_server import run as run_mcp
+        run_mcp()
+        return
     if a.cmd == "hash-password":
         from .auth import hash_password
         print(hash_password(getpass.getpass("Password: ")))

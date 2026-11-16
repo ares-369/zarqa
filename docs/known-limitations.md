@@ -1,7 +1,8 @@
 # Known limitations
 
-- Sharing out (STIX/TAXII/MISP-format export, MCP server), reports and the demo are not built yet (see the
-  [roadmap](roadmap.md)).
+- Reports, a daily brief, the demo and a published benchmark are not built yet (see the [roadmap](roadmap.md)).
+- The TAXII server pages by position: an object added between two page requests can shift a page. It is
+  read-only and has no per-collection access control beyond the login or token.
 - Brand watch does not compare registrants, so a brand's own defensive registrations can score as middling
   findings; a lookalike that redirects to your domain is recognised. The page check reads HTML only (no
   scripts), so pages built entirely by scripts look empty.

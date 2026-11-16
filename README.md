@@ -16,7 +16,8 @@ can send what it finds back to them in standard formats.
 Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days before it arrived.
 
 > **Early development, solo-maintained.** Collection, extraction, enrichment, relevance ranking,
-> investigations, brand watch and the connector layer work and are tested; sharing out is next. See the
+> investigations, brand watch, sharing and the connector layer work and are tested; reports, a demo mode and
+> a benchmark come before the first release. See the
 > [roadmap](docs/roadmap.md).
 
 ## What works today
@@ -43,6 +44,9 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
   your name or asks for a password, or is parked. Scored and tracked with a status. ([brand](docs/brand.md))
 - **Enrichment on request.** Connectors declare their lookups; built-in EPSS and RDAP are opt-in and never
   sent your own or internal values. ([enrichment](docs/enrichment.md))
+- **Shares in standard formats.** STIX 2.1 and MISP-format exports, a read-only TAXII 2.1 server, pushes to
+  other platforms that a person starts, and an MCP server so other agents can ask Zarqa.
+  ([sharing](docs/sharing.md))
 - **Connectors, read-only by default.** Writes to another platform go only through a sharing connector
   with the exact tool allowed, never from a model, always audited. ([connectors](docs/connectors.md))
 - **Any model.** Local models through Ollama, or cloud providers, per role. Prompts to cloud models are
@@ -50,8 +54,7 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
 
 ## Planned
 
-Sharing out (STIX 2.1, TAXII, MISP-format, MCP server),
-reports and a daily brief, a demo mode and a published benchmark.
+Reports and a daily brief, a demo mode and a published benchmark.
 
 ## Try it
 

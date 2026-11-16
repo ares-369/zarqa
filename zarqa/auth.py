@@ -255,13 +255,18 @@ def init_auth(app, cfg) -> None:
         g.zarqa_role = "admin"
         g.zarqa_user = _local_user()
         g.zarqa_groups = []
+        if p.startswith("/taxii2/") and request.method == "GET":
+            from .share.taxii_server import token_ok
+            if token_ok(cfg):
+                g.zarqa_role, g.zarqa_user, g.zarqa_groups = "viewer", "taxii-token", []
+                return None
         if p == "/mcp":
             import os
             mc = (cfg.raw or {}).get("mcp") or {}
             tok = os.getenv(str(mc.get("token_env", "")), "") if mc.get("token_env") else ""
             got = request.headers.get("Authorization", "")
             if tok and got.startswith("Bearer ") and hmac.compare_digest(got[7:].strip(), tok):
-                role = str(mc.get("token_role", "operator")).lower()
+                role = str(mc.get("token_role", "viewer")).lower()
                 g.zarqa_role = role if role in _VALID_ROLES else "viewer"
                 g.zarqa_user = "mcp-token"
                 g.zarqa_groups = parse_groups(mc.get("token_groups") or [])
