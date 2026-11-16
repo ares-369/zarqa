@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import json
 import secrets
 import shutil
 import sys
@@ -237,6 +238,30 @@ def cmd_intel(a) -> int:
                 print(f"{e['display']}  {r['enricher']:24} {'ok  ' if r['ok'] else 'FAIL'} {r['summary']}")
                 rc |= 0 if r["ok"] else 1
         return rc
+    if a.cmd == "ask":
+        from .investigate.service import run_investigation
+        from .investigate.store import store_for as istore
+        st_i = istore(cfg)
+        inv_id = st_i.create(a.question, "cli")
+        r = run_investigation(cfg, inv_id, actor="cli", max_steps=a.max_steps)
+        inv = st_i.get(inv_id)
+        for s in inv["steps"]:
+            print(f"E{s['n']:<3} {'ok  ' if s['ok'] else 'FAIL'} {s['connector']}.{s['tool']} {json.dumps(s['arguments'])[:120]}")
+        if r.get("status") != "done":
+            print(f"investigation {inv_id}: {r.get('status')} {r.get('error', '')}")
+            return 1
+        print(f"\n[{r['outcome']}] confidence {r['confidence']}\n{r['answer']}\n")
+        for f in r["findings"]:
+            print(f"  - {f['claim']}  ({', '.join(f['evidence'])})")
+        for u in r["unsupported"]:
+            print(f"  set aside: {u['claim']}  ({u['why']})")
+        for g in r["gaps"]:
+            print(f"  gap: {g}")
+        for c in r["checks"]:
+            print(f"  check: {c}")
+        if inv["review"]:
+            print(f"  review: {inv['review']}")
+        return 0
     if a.cmd == "rescore":
         from .intel.relevance import score_document
         from .llm import privacy_llm
@@ -315,6 +340,9 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_lk = sub.add_parser("lookup", help="everything known about a value (indicator, CVE, technique or name)")
     p_lk.add_argument("value")
     sub.add_parser("stats", help="counts in the store")
+    p_ask = sub.add_parser("ask", help="investigate a question; the answer cites its evidence")
+    p_ask.add_argument("question")
+    p_ask.add_argument("--max-steps", type=int, default=None)
     p_rs = sub.add_parser("rescore", help="score documents again against the organization profile and requirements")
     p_rs.add_argument("ids", nargs="*")
     p_rs.add_argument("--limit", type=int, default=200)
@@ -375,7 +403,7 @@ def cli_main(argv: list[str] | None = None) -> None:
     if a.cmd == "bridge":
         bridges[a.kind].run(a)
         return
-    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore"):
+    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore", "ask"):
         sys.exit(cmd_intel(a))
     if a.cmd == "hash-password":
         from .auth import hash_password

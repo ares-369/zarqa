@@ -48,6 +48,11 @@ All notable changes are listed here. The format follows
   (products, brands, domains, sectors and regions named or targeted, known-exploited and likely-exploited CVEs,
   requirements matched); optional analyst-model check; documents tagged `pir:<name>`. `zarqa rescore`.
 
+- Investigations: ask a question; the analyst model uses Zarqa's own read-only tools (lookup, search, read,
+  ATT&CK, enrich) and connector tools, and every finding must cite evidence. Findings without valid evidence, or
+  naming indicators not in the cited evidence, are set aside; no supported finding means not_enough_data.
+  `zarqa ask`, Ask page, `/api/investigations`.
+
 ### Fixed
 
 - IPv4 addresses at the end of a sentence ("... 10.0.0.5.") were not found by the indicator rules.

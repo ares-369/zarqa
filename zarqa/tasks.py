@@ -46,7 +46,14 @@ def enrich(p: dict, ctl, jobs) -> dict:
     return {"entity_id": p["entity_id"], "results": r}
 
 
-TASKS: dict[str, Any] = {"ping": ping, "pull": pull, "process": process, "enrich": enrich}
+def investigate(p: dict, ctl, jobs) -> dict:
+    from .investigate.service import run_investigation
+    r = run_investigation(_cfg(), int(p["investigation_id"]), actor=p.get("actor", ""),
+                          checkpoint=ctl.checkpoint if ctl else None)
+    return {"investigation_id": p["investigation_id"], "status": r.get("status"), "outcome": r.get("outcome")}
+
+
+TASKS: dict[str, Any] = {"ping": ping, "pull": pull, "process": process, "enrich": enrich, "investigate": investigate}
 
 
 def run_task(name: str, params: dict, ctl=None, *, jobs=None) -> dict:

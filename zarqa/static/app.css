@@ -52,6 +52,10 @@ a.kpi-card{color:var(--fg)}a.kpi-card:hover{border-color:var(--accent)}
 details summary{cursor:pointer;color:var(--muted)}.warn{color:var(--amber)}
 .rel{font-weight:600;min-width:2.2rem;justify-content:center}.rel-high{color:var(--red);border-color:var(--red)}
 .rel-mid{color:var(--amber);border-color:var(--amber)}.rel-low{color:var(--grey)}.pir{color:var(--accent);border-color:var(--accent);margin-left:.3rem}
+.o-answered{color:var(--green);border-color:var(--green)}.o-partial{color:var(--amber);border-color:var(--amber)}
+.o-not_enough_data{color:var(--grey)}.st-running{color:var(--blue);border-color:var(--blue)}.st-done{color:var(--green);border-color:var(--green)}
+.step{border-left:2px solid var(--line);padding:.3rem 0 .3rem .8rem;margin:.4rem 0}.step.good{border-color:var(--green)}.step.fail{border-color:var(--red)}
+.answer{font-size:1rem;line-height:1.6}.cite{font-family:ui-monospace,monospace;font-size:.8rem;border:1px solid var(--line);border-radius:4px;padding:0 .25rem}
 .clamp{display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @media (max-width:640px){nav .lbl{display:none}main{padding:0 .5rem}
 table.cards,.cards tbody,.cards tr,.cards td{display:block;width:100%}.cards thead{display:none}

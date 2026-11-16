@@ -15,8 +15,8 @@ can send what it finds back to them in standard formats.
 
 Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days before it arrived.
 
-> **Early development, solo-maintained.** Collection, extraction, enrichment, relevance ranking and the
-> connector layer work and are tested; investigations, brand monitoring and sharing are next. See the
+> **Early development, solo-maintained.** Collection, extraction, enrichment, relevance ranking,
+> investigations and the connector layer work and are tested; brand monitoring and sharing are next. See the
 > [roadmap](docs/roadmap.md).
 
 ## What works today
@@ -36,6 +36,9 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
 - **Ranked for you.** Describe your organization and your intelligence requirements; every report gets a
   0-100 score with the reasons (your products named, your sector targeted, known-exploited CVEs, a
   requirement answered). ([relevance](docs/relevance.md))
+- **Ask, and get a cited answer.** "What do we know about this IP?" The analyst model searches the store and
+  your connectors; every finding cites its evidence, unsupported claims are set aside, and "not enough data"
+  is an allowed answer. ([investigations](docs/investigations.md))
 - **Enrichment on request.** Connectors declare their lookups; built-in EPSS and RDAP are opt-in and never
   sent your own or internal values. ([enrichment](docs/enrichment.md))
 - **Connectors, read-only by default.** Writes to another platform go only through a sharing connector
@@ -45,8 +48,7 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
 
 ## Planned
 
-Cited investigations ("what do we know about this
-domain?"), brand and lookalike-domain monitoring, sharing out (STIX 2.1, TAXII, MISP-format, MCP server),
+Brand and lookalike-domain monitoring, sharing out (STIX 2.1, TAXII, MISP-format, MCP server),
 reports and a daily brief, a demo mode and a published benchmark.
 
 ## Try it
@@ -60,6 +62,7 @@ zarqa serve                      # http://127.0.0.1:8621
 zarqa add --url https://...      # a report, extracted straight away
 zarqa sources pull               # pull every source in config.yaml now
 zarqa lookup 203.0.113.66        # everything known about a value, with the sentences
+zarqa ask "What do we know about 203.0.113.66?"
 ```
 
 Docker: `docker compose up -d` (non-root, read-only container, loopback port).

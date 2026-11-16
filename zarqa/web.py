@@ -24,6 +24,8 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
     cfg.data_dir.mkdir(parents=True, exist_ok=True)
     jobs = JobManager.from_config(cfg)
     app.extensions["zarqa_jobs"] = jobs
+    from .investigate.store import store_for as inv_store_for
+    inv_store_for(cfg).mark_orphans()
     if start_scheduler:
         from .scheduler import Scheduler
         sched = Scheduler(get_config, jobs)
@@ -301,6 +303,34 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
             return jsonify({"error": str(exc)}), 400
         job = _process_job(r["reports"]) if r["reports"] else None
         return jsonify({**r, "job_id": job})
+
+    # ---- investigations ----
+    @app.route("/api/investigations", methods=["GET", "POST"])
+    def investigations():
+        from .investigate.service import start
+        from .investigate.store import store_for as istore
+        if request.method == "GET":
+            return jsonify(istore(get_config()).list(limit=_int("limit", 50, 1, 200)))
+        b = request.get_json(silent=True) or {}
+        try:
+            inv_id = start(jobs, get_config(), str(b.get("question", ""))[:2000], actor=actor())
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"id": inv_id})
+
+    @app.route("/api/investigations/<int:inv_id>")
+    def investigation(inv_id):
+        from .investigate.store import store_for as istore
+        d = istore(get_config()).get(inv_id)
+        return (jsonify(d), 200) if d else (jsonify({"error": "not found"}), 404)
+
+    @app.route("/api/investigations/<int:inv_id>/stop", methods=["POST"])
+    def investigation_stop(inv_id):
+        from .investigate.store import store_for as istore
+        d = istore(get_config()).get(inv_id)
+        if not d:
+            return jsonify({"error": "not found"}), 404
+        return jsonify({"ok": bool(d["job_id"]) and jobs.cancel(d["job_id"])})
 
     @app.route("/api/doctor")
     def doctor_api():

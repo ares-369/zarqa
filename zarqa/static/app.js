@@ -15,7 +15,7 @@ function h(tag, attrs, ...kids) {
     else if (k === "value") el.value = v;
     else el.setAttribute(k, v === true ? "" : String(v));
   }
-  for (const kid of kids.flat()) {
+  for (const kid of kids.flat(Infinity)) {
     if (kid === null || kid === undefined || kid === false) continue;
     el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
   }
@@ -59,9 +59,10 @@ let poll = null;
 function route() {
   clearInterval(poll); poll = null;
   const [tab, arg] = (location.hash.slice(1) || "overview").split("/");
-  const navTab = { doc: "intel", entity: "entities", add: "intel" }[tab] || tab;
+  const navTab = { doc: "intel", entity: "entities", add: "intel", inv: "ask" }[tab] || tab;
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === navTab));
   const pages = { overview, intel, doc: () => docPage(arg), entities, entity: () => entityPage(arg), add, sources,
+    ask, inv: () => invPage(arg),
     connectors, jobs, settings };
   const token = ++navToken;
   const view = h("div");
@@ -241,6 +242,42 @@ async function add() {
     h("button", { onclick: async () => { const f = stix.files[0]; if (!f) return toast("Choose a file."); let b;
       try { b = JSON.parse(await f.text()); } catch (e) { return toast("Not valid JSON."); }
       const r = await post("/api/import/stix", b); toast(`${r.indicators} indicators, ${r.entities} entities, ${r.relations} relations`); location.hash = `#doc/${r.document_id}`; } }, icon("upload"), "Import"))));
+}
+
+// ---------------- Ask: investigations ----------------
+const outcomeBadge = (o) => o ? h("span", { class: "badge o-" + o }, o.replace(/_/g, " ")) : null;
+async function ask() {
+  const q = h("textarea", { "data-need": "op", placeholder: "Ask a question, for example: what do we know about update-check.example-cdn.net? Which actors target our sector this month, and how do they get in?" });
+  main.append(section("Ask", "chat-question-outline", h("p", { class: "muted small" }, "The analyst model searches what Zarqa has collected and your connectors, then answers. Every claim must cite its evidence; claims without it are set aside."),
+    q, h("div", { class: "row" }, h("button", { "data-need": "op", onclick: async () => { const r = await post("/api/investigations", { question: q.value }); location.hash = `#inv/${r.id}`; } }, icon("send"), "Investigate"))));
+  const rows = await api("/api/investigations");
+  main.append(section("Earlier questions", "history", rows.length ? h("table", { class: "wrap cards" }, h("tbody", {}, rows.map((r) => h("tr", {},
+    h("td", { class: "small muted" }, when(r.created)), h("td", {}, h("a", { href: `#inv/${r.id}` }, r.question)),
+    h("td", {}, r.status === "done" ? outcomeBadge(r.outcome) : statusBadge(r.status)), h("td", {}, r.confidence ?? ""))))) : h("p", { class: "muted" }, "None yet.")));
+}
+
+async function invPage(id) {
+  const d = await api(`/api/investigations/${id}`);
+  const a = d.assessment;
+  const stepBox = (s) => h("details", { class: "step " + (s.ok ? "good" : "fail"), id: `E${s.n}` },
+    h("summary", {}, h("b", {}, `E${s.n} `), `${s.connector}.${s.tool} `, h("span", { class: "muted small" }, JSON.stringify(s.arguments).slice(0, 160)), s.ok ? "" : h("span", { class: "bad small" }, " failed")),
+    s.thought ? h("div", { class: "small muted" }, s.thought) : null, h("pre", {}, s.result));
+  const cite = (e) => h("a", { href: "#", class: "cite", onclick: (ev) => { ev.preventDefault(); const el = document.getElementById(e); if (el) { el.open = true; el.scrollIntoView({ block: "center" }); } } }, e);
+  main.append(section(d.question, "chat-question-outline", h("div", { class: "row" }, d.status === "done" ? outcomeBadge(d.outcome) : statusBadge(d.status),
+    a ? h("span", { class: "badge" }, `confidence ${a.confidence}`) : null, h("span", { class: "small muted" }, `${d.actor || ""} ${when(d.created)}`),
+    d.status === "running" && h("button", { "data-need": "op", class: "ghost", onclick: async () => { await post(`/api/investigations/${id}/stop`); route(); } }, icon("stop"), "Stop")),
+    d.review ? h("p", { class: "warn" }, icon("alert-outline"), " Text in a result addressed an AI: ", d.review) : null,
+    d.error ? h("p", { class: "bad" }, d.error) : null,
+    a ? h("p", { class: "answer" }, a.answer) : d.status === "running" ? h("p", { class: "muted" }, icon("progress-clock"), ` Working... ${d.steps.length} step(s) so far.`) : null));
+  if (a) {
+    main.append(section("Findings", "check-decagram-outline", a.findings.length ? h("ul", {}, a.findings.map((f) => h("li", {}, f.claim, " ", f.evidence.flatMap((e) => [cite(e), " "])))) : h("p", { class: "muted" }, "No supported findings."),
+      a.unsupported.length ? h("details", {}, h("summary", {}, `${a.unsupported.length} claim(s) set aside`), h("ul", { class: "small" }, a.unsupported.map((u) => h("li", {}, u.claim, h("span", { class: "muted" }, ` (${u.why})`))))) : null,
+      a.gaps.length ? [h("h3", {}, "Gaps"), h("ul", { class: "small" }, a.gaps.map((g) => h("li", {}, g)))] : null,
+      a.next_steps.length ? [h("h3", {}, "Next steps"), h("ul", { class: "small" }, a.next_steps.map((g) => h("li", {}, g)))] : null,
+      a.checks.length ? h("p", { class: "small muted" }, a.checks.join(" ")) : null));
+  }
+  main.append(section("Evidence", "file-search-outline", d.steps.length ? d.steps.map(stepBox) : h("p", { class: "muted" }, "No tool calls.")));
+  if (d.status === "running") poll = setInterval(async () => { const x = await api(`/api/investigations/${id}`); if (x.status !== "running" || x.steps.length !== d.steps.length) route(); }, 3000);
 }
 
 // ---------------- Sources ----------------

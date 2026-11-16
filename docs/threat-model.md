@@ -30,6 +30,8 @@ What Zarqa protects, from whom, and how. This page grows with each phase.
 
 | Prompt injection in collected pages and reports | Document text reaches a model only inside untrusted-data markers; every document is scanned for text addressing an AI and marked for review; models cannot add indicators and every item they return must quote the document. |
 
+| A model states something no source says | Investigation findings must cite successful evidence, and indicators named in a finding must be in that evidence; the rest is set aside and listed. |
+
 ## Threats planned for later phases
 
-- Investigations and sharing (phases 7 and 9) will add their own rows here.
+- Sharing (phase 9) will add its own rows here.
