@@ -1,4 +1,4 @@
-"""Command line entry point: ``zarqa [serve|init|doctor|version|models|users|hash-password]``."""
+"""Command line entry point: ``zarqa [serve|init|doctor|version|models|users|connectors|bridge|hash-password]``."""
 
 from __future__ import annotations
 
@@ -81,6 +81,55 @@ def cmd_models() -> int:
     return 0
 
 
+def cmd_login(name: str | None, manual: bool) -> int:
+    from .config import get_config
+    from .connectors.oauth import OAuthError, login
+    from .connectors.spec import parse_connectors
+    cfg = get_config()
+    specs = {s.name: s for s in parse_connectors(list(cfg.connectors))}
+    if not name or name not in specs:
+        print("usage: zarqa connectors login <name> (an HTTP connector with auth: {type: oauth})")
+        return 2
+    if specs[name].auth.get("type") != "oauth":
+        print(f"{name} does not use auth type oauth")
+        return 2
+    try:
+        r = login(specs[name], cfg.data_dir, ask=input if manual else None)
+    except OAuthError as exc:
+        print(f"sign-in failed: {exc}")
+        return 1
+    print(f"signed in ({r.get('scope') or 'default scope'}); token saved under data/oauth/")
+    return 0
+
+
+def cmd_connectors(action: str, name: str | None) -> int:
+    from .connectors import get_hub
+    hub = get_hub()
+    if action == "list":
+        for s in hub.specs.values():
+            state = "on " if s.enabled else "off"
+            print(f"{state} {s.name:20} {s.transport:6} {','.join(s.roles)}")
+        if not hub.specs:
+            print("no connectors configured (see connectors: in config.yaml)")
+        return 0
+    names = [name] if name else list(hub.specs)
+    rc = 0
+    for n in names:
+        if n not in hub.specs:
+            print(f"unknown connector {n}")
+            return 1
+        if action == "test":
+            r = hub.test(n)
+            print(f"{n}: " + (f"ok, {r['allowed']}/{r['tools']} tools allowed, {r['ms']} ms" if r["ok"]
+                              else f"FAILED: {r['error']}"))
+            rc |= 0 if r["ok"] else 1
+        else:
+            for t in hub.tools(n):
+                print(f"{n:16} {'allow' if t['allowed'] else 'BLOCK'} {t['name']:32} {t['reason']}")
+    hub.close()
+    return rc
+
+
 def cmd_models_test() -> int:
     from .config import get_config
     from .llm import test_models
@@ -117,6 +166,17 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_u.add_argument("--role", default="operator", choices=["viewer", "operator", "admin"])
     p_u.add_argument("--full-name", default="")
     p_u.add_argument("--password-stdin", action="store_true", help="read the password from stdin")
+    p_con = sub.add_parser("connectors", help="list, test or show tools of MCP connectors; login for OAuth")
+    p_con.add_argument("action", choices=["list", "test", "tools", "login"], nargs="?", default="list")
+    p_con.add_argument("name", nargs="?")
+    p_con.add_argument("--manual", action="store_true", help="login: paste the redirect URL instead of a local listener")
+    p_br = sub.add_parser("bridge", help="run a generic bridge as a stdio MCP server (used by connectors)")
+    br = p_br.add_subparsers(dest="kind", required=True)
+    from .bridges import openapi, taxii
+    from .bridges import web as web_bridge
+    bridges = {"taxii": taxii, "openapi": openapi, "web": web_bridge}
+    for kind, mod in bridges.items():
+        mod.add_args(br.add_parser(kind))
     a = ap.parse_args(argv)
 
     if a.cmd == "version":
@@ -155,6 +215,13 @@ def cli_main(argv: list[str] | None = None) -> None:
             sys.exit(2)
         set_user(a.name, password_hash=hash_password(pw), role=a.role, name=a.full_name)
         print(f"saved {a.name} ({a.role}); restart the server to apply")
+        return
+    if a.cmd == "connectors":
+        if a.action == "login":
+            sys.exit(cmd_login(a.name, a.manual))
+        sys.exit(cmd_connectors(a.action, a.name))
+    if a.cmd == "bridge":
+        bridges[a.kind].run(a)
         return
     if a.cmd == "hash-password":
         from .auth import hash_password

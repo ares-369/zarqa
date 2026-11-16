@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/img/logo.svg" width="120" alt="Zarqa logo"></p>
+
 # Zarqa
 
 [![CI](https://github.com/ares-369/zarqa/actions/workflows/ci.yml/badge.svg)](https://github.com/ares-369/zarqa/actions/workflows/ci.yml)

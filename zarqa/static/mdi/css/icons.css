@@ -2,9 +2,10 @@
 @font-face{font-family:"Material Design Icons";src:url("../fonts/icons.woff2") format("woff2");font-weight:normal;font-style:normal}
 .mdi::before,.mdi-set{display:inline-block;font:normal normal normal 24px/1 "Material Design Icons";font-size:inherit;text-rendering:auto;line-height:inherit;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 .mdi-account-circle-outline::before{content:"\F0B55"}
-.mdi-binoculars::before{content:"\F00A5"}
 .mdi-brain::before{content:"\F09D1"}
+.mdi-clipboard-text-clock::before{content:"\F18F9"}
 .mdi-cog::before{content:"\F0493"}
+.mdi-connection::before{content:"\F1616"}
 .mdi-content-save::before{content:"\F0193"}
 .mdi-ghost::before{content:"\F02A0"}
 .mdi-lan-check::before{content:"\F12AA"}
@@ -15,4 +16,6 @@
 .mdi-stethoscope::before{content:"\F04D9"}
 .mdi-stop::before{content:"\F04DB"}
 .mdi-table::before{content:"\F04EB"}
+.mdi-tools::before{content:"\F1064"}
 .mdi-view-dashboard-outline::before{content:"\F0A1D"}
+.mdi-wrap::before{content:"\F05B6"}

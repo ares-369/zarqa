@@ -23,7 +23,7 @@ def _basic(user="zarqa", pw="pw"):
 def test_index_and_health(client):
     assert client.get("/healthz").json == {"ok": True}
     r = client.get("/")
-    assert r.status_code == 200 and b"mdi-binoculars" in r.data
+    assert r.status_code == 200 and b"/static/img/logo.svg" in r.data
     csp = r.headers["Content-Security-Policy"]
     assert "script-src 'self'" in csp and "unsafe-inline" not in csp
     assert r.headers["X-Frame-Options"] == "DENY" and r.headers["X-Content-Type-Options"] == "nosniff"

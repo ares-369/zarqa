@@ -107,5 +107,16 @@ jobs:
 #  groups: [intel-automation]
 #  role: operator
 
+# Built-in public web lookups (connector "web", role search). See docs/bridges.md.
+web:
+  tools: false
+  search_url: ""             # optional search service with a JSON API
+
 # MCP connectors: other intel platforms, enrichment and search services. See docs/connectors.md.
 connectors: []
+#  - name: sharing-server
+#    roles: [intel_platform]
+#    transport: stdio
+#    command: zarqa
+#    args: [bridge, taxii, --url, "${TAXII_URL}"]
+#    env: {BRIDGE_TOKEN: "${TAXII_TOKEN}"}

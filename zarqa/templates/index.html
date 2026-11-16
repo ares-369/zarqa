@@ -3,14 +3,16 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ name }}</title>
+<link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
 <link rel="stylesheet" href="/static/mdi/css/icons.css">
 <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
 <header>
-  <span class="brand"><span class="mdi mdi-binoculars"></span>{{ name }}<span class="muted ver">v{{ version }}</span></span>
+  <span class="brand"><img class="logo" src="/static/img/logo.svg" alt="">{{ name }}<span class="muted ver">v{{ version }}</span></span>
   <nav id="nav">
     <a href="#overview" data-tab="overview"><span class="mdi mdi-view-dashboard-outline"></span><span class="lbl">Overview</span></a>
+    <a href="#connectors" data-tab="connectors"><span class="mdi mdi-connection"></span><span class="lbl">Connectors</span></a>
     <a href="#jobs" data-tab="jobs"><span class="mdi mdi-progress-clock"></span><span class="lbl">Jobs</span></a>
     <a href="#settings" data-tab="settings"><span class="mdi mdi-cog"></span><span class="lbl">Settings</span></a>
   </nav>

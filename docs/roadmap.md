@@ -6,7 +6,7 @@ A phase is marked done only when that is true.
 | Phase | What | Status |
 |---|---|---|
 | 1 | Foundation: config, login and roles, model providers, privacy layer, jobs, web shell, health check | done |
-| 2 | Connectors: MCP client and hub, read-only policy, audit log, rate limits; bridges for STIX/TAXII 2.1, REST/OpenAPI and web search | planned |
+| 2 | Connectors: MCP client and hub, read-only policy, sharing path, audit log, rate limits; bridges for STIX/TAXII 2.1, REST/OpenAPI and web search | done |
 | 3 | Collection: feeds, advisories, pages, PDFs, pasted text, scheduled pulls, safe fetching | planned |
 | 4 | Extraction and knowledge store: indicators, CVEs, actors, malware, ATT&CK techniques and relations, each linked to its source sentence; dedup, confidence, expiry, actor aliases | planned |
 | 5 | Enrichment through connectors, opt-in per lookup | planned |

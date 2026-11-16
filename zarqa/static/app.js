@@ -60,7 +60,7 @@ function route() {
   clearInterval(poll); poll = null;
   const [tab] = (location.hash.slice(1) || "overview").split("/");
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
-  const pages = { overview, jobs, settings };
+  const pages = { overview, connectors, jobs, settings };
   const token = ++navToken;
   const view = h("div");
   main = view;
@@ -77,6 +77,48 @@ async function overview() {
   main.append(h("div", { class: "kpi-row" }, kpi(s.version, "version"), kpi(s.connectors, "connectors"), kpi(s.auth_mode, "login mode")));
   main.append(section("Models", "brain", h("table", {}, h("tbody", {}, Object.entries(s.roles).map(([r, c]) =>
     h("tr", {}, h("td", {}, r), h("td", {}, c.provider || "ollama"), h("td", { class: "muted" }, c.model || "provider default")))))));
+}
+
+// ---------------- Connectors ----------------
+async function connectors() {
+  const list = await api("/api/connectors");
+  const detail = h("div");
+  const showTools = async (name) => {
+    fill(detail, h("p", { class: "muted" }, "Loading tools..."));
+    const tools = await api(`/api/connectors/${encodeURIComponent(name)}/tools?refresh=1`);
+    fill(detail, h("h2", {}, icon("tools"), `Tools of ${name}`), h("table", { class: "wrap cards" }, h("tbody", {}, tools.map((t) =>
+      h("tr", {}, h("td", {}, h("span", { class: "badge " + (t.allowed ? "lv-OK" : "lv-WARN") }, t.allowed ? "allowed" : "blocked")),
+        h("td", {}, t.name, h("div", { class: "muted small clamp", title: t.description }, t.description)), h("td", { class: "small muted" }, t.reason))))));
+  };
+  const rows = list.map((c) => {
+    const res = h("span", { class: "small muted" });
+    return h("tr", {}, h("td", {}, h("b", {}, c.name), h("div", { class: "muted small" }, c.description || "")),
+      h("td", {}, c.roles.map((r) => h("span", { class: "badge" }, r.replace("_", " ")))),
+      h("td", { class: "small" }, c.transport, c.allow_write ? h("div", { class: "warn small" }, "writes allowed") : null),
+      h("td", {}, c.enabled ? "on" : h("span", { class: "muted" }, "off")),
+      h("td", {}, h("div", { class: "row" },
+        h("button", { "data-need": "admin", class: "ghost", onclick: async (e) => {
+          e.target.disabled = true; res.textContent = "testing...";
+          try { const r = await post(`/api/connectors/${encodeURIComponent(c.name)}/test`);
+            res.className = "small " + (r.ok ? "ok" : "bad");
+            res.textContent = r.ok ? `ok, ${r.allowed}/${r.tools} tools, ${r.ms} ms` : r.error;
+          } finally { e.target.disabled = false; } } }, icon("lan-check"), "Test"),
+        h("button", { "data-need": "admin", class: "ghost", onclick: () => showTools(c.name) }, icon("tools"), "Tools")), res));
+  });
+  main.append(section("Connectors", "connection",
+    h("p", { class: "muted small" }, "Other intel platforms, enrichment and search services, each an MCP server with roles. Read-only unless a connector allows writes. Configured in config.yaml (connectors:)."),
+    list.length ? h("table", { class: "wrap cards" }, h("thead", {}, h("tr", {}, ["Name", "Roles", "Transport", "", ""].map((x) => h("th", {}, x)))), h("tbody", {}, rows))
+      : h("p", { class: "muted" }, "No connectors yet. Add them under connectors: in config.yaml; see docs/connectors.md.")));
+  main.append(h("section", {}, detail));
+  const audit = h("div", {}, h("button", { "data-need": "admin", class: "ghost", onclick: async () => {
+    const [rows, chain] = await Promise.all([api("/api/audit?limit=100"), api("/api/audit/verify")]);
+    fill(audit, h("p", { class: "small " + (chain.ok ? "ok" : "bad") }, chain.ok ? `Hash chain intact (${chain.rows_checked} rows).` : `Hash chain broken at row ${(chain.broken[0] || {}).id}: ${(chain.broken[0] || {}).problem || ""}`),
+      h("table", { class: "wrap cards" }, h("thead", {}, h("tr", {}, ["Time", "Who", "Connector", "Tool", "Status", "Decision", "ms"].map((x) => h("th", {}, x)))),
+        h("tbody", {}, rows.map((r) => h("tr", {}, h("td", { class: "small" }, when(r.ts)), h("td", { class: "small" }, r.actor || ""), h("td", {}, r.connector),
+          h("td", {}, r.tool), h("td", {}, h("span", { class: ["ok", "shared"].includes(r.status) ? "ok" : "bad" }, r.status)),
+          h("td", { class: "small muted" }, r.decision), h("td", {}, r.duration_ms))))));
+  } }, icon("clipboard-text-clock"), "Show audit log"));
+  main.append(section("Audit log", "clipboard-text-clock", h("p", { class: "muted small" }, "Every connector call, allowed or blocked, in an append-only log with a hash chain. Admins only."), audit));
 }
 
 // ---------------- Jobs ----------------

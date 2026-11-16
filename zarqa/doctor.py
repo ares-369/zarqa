@@ -98,6 +98,26 @@ def run(cfg=None, *, offline: bool = False, models: bool = False) -> list[dict]:
     else:
         add("OK", "models", "model calls not tested (run with --models)")
 
+    from .connectors import get_hub
+    from .connectors.spec import DATA_ROLES
+    hub = get_hub(cfg, reload=True)
+    data = [s for s in hub.specs.values() if s.enabled and set(s.roles) & set(DATA_ROLES)]
+    if not data:
+        add("WARN", "connectors", "no intel connectors; Zarqa can only use what it collects itself",
+            "add connectors: for your intel platforms and enrichment services (docs/connectors.md)")
+    for s in hub.specs.values():
+        if not s.enabled:
+            add("OK", "connectors", f"{s.name}: disabled")
+            continue
+        if offline:
+            continue
+        r = hub.test(s.name)
+        if r["ok"]:
+            add("OK", "connectors", f"{s.name}: {r['allowed']}/{r['tools']} tools allowed, {r['ms']} ms")
+        else:
+            add("FAIL", "connectors", f"{s.name}: {r['error']}", "check the URL, command and credentials in .env")
+    hub.close()
+
     org = (cfg.raw or {}).get("organization") or {}
     if not any(org.get(k) for k in ("sectors", "regions", "products", "brands", "domains")):
         add("WARN", "organization", "no organization profile; intel cannot be ranked by relevance to you",

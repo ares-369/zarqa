@@ -81,6 +81,53 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
         from .llm import test_models
         return jsonify(test_models(get_config()))
 
+    def hub():
+        from .connectors import get_hub
+        return get_hub(get_config())
+
+    @app.route("/api/connectors")
+    def connectors():
+        return jsonify([s.public() for s in hub().specs.values()])
+
+    @app.route("/api/connectors/<name>/tools")
+    def connector_tools(name):
+        h = hub()
+        if name not in h.specs:
+            return jsonify({"error": "not found"}), 404
+        try:
+            return jsonify(h.tools(name, refresh=request.args.get("refresh") == "1"))
+        except Exception as exc:
+            return jsonify({"error": str(exc)[:300]}), 502
+
+    @app.route("/api/connectors/<name>/test", methods=["POST"])
+    def connector_test(name):
+        h = hub()
+        if name not in h.specs:
+            return jsonify({"error": "not found"}), 404
+        return jsonify(h.test(name))
+
+    @app.route("/api/settings/connectors", methods=["POST"])
+    def settings_connectors():
+        from .config import update_connectors
+        b = request.get_json(silent=True) or {}
+        try:
+            r = update_connectors(b.get("connector"), remove=b.get("remove"), preview=bool(b.get("preview")))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        if not b.get("preview") and r["changed"]:
+            from .connectors import get_hub
+            get_hub(get_config(), reload=True)
+        return jsonify(r)
+
+    @app.route("/api/audit")
+    def audit():
+        return jsonify(hub().audit.recent(limit=min(500, int(request.args.get("limit", 100))),
+                                          ref=request.args.get("ref") or None))
+
+    @app.route("/api/audit/verify")
+    def audit_verify():
+        return jsonify(hub().audit.verify())
+
     @app.route("/api/doctor")
     def doctor_api():
         from .doctor import run as run_doctor

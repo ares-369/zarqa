@@ -18,3 +18,11 @@ All notable changes are listed here. The format follows
 - Background jobs (SQLite by default, PostgreSQL optional) and a task registry.
 - Web shell: overview, jobs, settings (models with a diff before saving, model test, health check).
   Strict content security policy, no external assets, icon-font subset.
+- Logo (an eye with a horizon and something on it) in the UI, login page, favicon and README.
+- Connectors: MCP client (stdio and streamable HTTP; bearer, API key, OAuth client credentials and
+  browser sign-in with PKCE), hub by role, read-only policy, untrusted-data wrapping, pacing, retries,
+  append-only audit log with a hash chain. `zarqa connectors list|test|tools|login`, Connectors page.
+- Sharing path: intel is pushed to another platform only through a `sharing` connector with
+  `allow_write` and the tool named exactly; never offered to a model, never retried, always audited.
+- Bridges: STIX/TAXII 2.1 (read), REST/OpenAPI (GET, POST by name only) and public web (page fetch and
+  optional search with a leak guard and SSRF-safe fetching). `zarqa bridge taxii|openapi|web`.
