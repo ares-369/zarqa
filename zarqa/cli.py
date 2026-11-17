@@ -153,10 +153,33 @@ def cmd_intel(a) -> int:
     st = store_for(cfg)
     use_model = False if getattr(a, "no_model", False) else None
     if a.cmd == "sources":
-        from .collect.collector import sources_from
+        from .collect.collector import builtin_sources, default_settings, sources_from
+        if a.action in ("enable", "disable"):
+            from .config import set_default_sources, set_own_source_enabled
+            on = a.action == "enable"
+            if a.all:
+                d = set_default_sources(enabled=on)
+                print(f"built-in sources {'on' if d['enabled'] else 'off'}"
+                      + (f" (still off by name: {', '.join(d['disable'])})" if on and d["disable"] else ""))
+                return 0
+            if not a.names:
+                print(f"usage: zarqa sources {a.action} NAME [NAME...] | --all")
+                return 2
+            builtin = {s["name"] for s in builtin_sources()}
+            own = {s.get("name") for s in (cfg.raw.get("sources") or [])}
+            for n in a.names:
+                if n in own:
+                    set_own_source_enabled(n, on)
+                elif n in builtin:
+                    set_default_sources(**({"enable": [n]} if on else {"disable": [n]}))
+                else:
+                    print(f"no source named {n}")
+                    return 1
+                print(f"{n}: {'on' if on else 'off'}")
+            return 0
         states = st.source_state()
         if a.action == "pull":
-            names = [a.name] if a.name else [s["name"] for s in sources_from(cfg)]
+            names = a.names or [s["name"] for s in sources_from(cfg)]
             rc = 0
             for n in names:
                 r = service.pull_source(cfg, n, actor="cli", use_model=use_model, store=st)
@@ -166,13 +189,18 @@ def cmd_intel(a) -> int:
                     _print_process(p)
                 rc |= 1 if r["errors"] and not r["new_documents"] else 0
             return rc
-        for s in sources_from(cfg):
+        ds = default_settings(cfg.raw)
+        rows = sources_from(cfg, include_disabled=True)
+        print(f"built-in sources: {'on' if ds['enabled'] else 'OFF'}"
+              + (f", off by name: {', '.join(ds['disable'])}" if ds["disable"] else ""))
+        for s in rows:
             stt = states.get(s["name"], {})
-            print(f"{s['name']:24} {s.get('kind', 'feed'):9} every {s.get('interval_minutes', 0) or '-'} min  "
-                  f"last {stt.get('last_pull', '-')[:16] or '-'}  docs {stt.get('documents', 0)}"
-                  + (f"  ERROR {stt['last_error'][:80]}" if stt.get("last_error") else ""))
-        if not sources_from(cfg):
-            print("no sources configured (sources: in config.yaml)")
+            print(f"{'on ' if s['enabled'] else 'off'} {s['name']:22} {('built-in ' + s.get('category', '')) if s['builtin'] else 'yours':19} "
+                  f"{s.get('kind', 'feed'):5} {s.get('reliability', '-')} every {s.get('interval_minutes', 0) or '-':>4} min  "
+                  f"last {stt.get('last_pull', '-')[:16] or '-':16}  docs {stt.get('documents', 0)}"
+                  + (f"  ERROR {stt['last_error'][:60]}" if stt.get("last_error") else ""))
+        if not rows:
+            print("no sources")
         return 0
     if a.cmd == "add":
         c = service.collector(cfg, st)
@@ -385,9 +413,10 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_con.add_argument("action", choices=["list", "test", "tools", "login"], nargs="?", default="list")
     p_con.add_argument("name", nargs="?")
     p_con.add_argument("--manual", action="store_true", help="login: paste the redirect URL instead of a local listener")
-    p_src = sub.add_parser("sources", help="list configured sources, or pull one (or all) now")
-    p_src.add_argument("action", nargs="?", choices=["list", "pull"], default="list")
-    p_src.add_argument("name", nargs="?")
+    p_src = sub.add_parser("sources", help="list sources (built-in and yours), pull now, or turn them on or off")
+    p_src.add_argument("action", nargs="?", choices=["list", "pull", "enable", "disable"], default="list")
+    p_src.add_argument("names", nargs="*")
+    p_src.add_argument("--all", action="store_true", help="enable/disable: every built-in source at once")
     p_src.add_argument("--no-model", action="store_true", help="rules only, no extractor model")
     p_add = sub.add_parser("add", help="add a report: --url, --file (text, HTML, PDF, STIX JSON), or text on stdin")
     p_add.add_argument("--url")

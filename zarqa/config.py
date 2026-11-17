@@ -176,7 +176,8 @@ def load_config() -> Config:
     validate_privacy(data.get("privacy") or {})
     if str((data.get("jobs") or {}).get("mode", "local")) != "local":
         raise ValueError("jobs.mode: only 'local' is supported in this version")
-    from .collect.collector import sources_from
+    from .collect.collector import sources_from, validate_defaults
+    validate_defaults(data)
     sources_from(type("C", (), {"raw": data})())            # fail fast on a bad source
     from .share.push import validate as validate_share
     validate_share(data)
@@ -312,6 +313,47 @@ def set_user(username: str, *, password_hash: str | None = None, role: str = "op
         users[username] = entry
     path.with_name(path.name + ".bak").write_text(old)
     path.write_text(yaml.safe_dump(data, sort_keys=False))
+
+
+def set_default_sources(*, enabled: bool | None = None, disable: list[str] | None = None,
+                        enable: list[str] | None = None) -> dict:
+    """Turn built-in sources on or off in config.yaml (writes config.yaml.bak first). ``enabled`` switches all
+    of them; ``disable``/``enable`` add names to or remove names from ``default_sources.disable``."""
+    from .collect.collector import validate_defaults
+    path = config_path()
+    old = path.read_text()
+    data = yaml.safe_load(old) or {}
+    d = data.get("default_sources") if isinstance(data.get("default_sources"), dict) else {}
+    d = {"enabled": bool(d.get("enabled", True)), "disable": list(d.get("disable") or [])}
+    if enabled is not None:
+        d["enabled"] = bool(enabled)
+    for n in disable or []:
+        if n not in d["disable"]:
+            d["disable"].append(n)
+    d["disable"] = [n for n in d["disable"] if n not in set(enable or [])]
+    data["default_sources"] = d
+    validate_defaults(data)
+    path.with_name(path.name + ".bak").write_text(old)
+    path.write_text(yaml.safe_dump(data, sort_keys=False))
+    get_config(reload=True)
+    return d
+
+
+def set_own_source_enabled(name: str, on: bool) -> None:
+    """Switch one of your own sources (``sources:``) on or off."""
+    path = config_path()
+    old = path.read_text()
+    data = yaml.safe_load(old) or {}
+    hit = False
+    for s in data.get("sources") or []:
+        if isinstance(s, dict) and s.get("name") == name:
+            s["enabled"] = bool(on)
+            hit = True
+    if not hit:
+        raise ValueError(f"no source named {name!r} in sources:")
+    path.with_name(path.name + ".bak").write_text(old)
+    path.write_text(yaml.safe_dump(data, sort_keys=False))
+    get_config(reload=True)
 
 
 def update_connectors(entry: dict | None = None, *, remove: str | None = None, preview: bool = False) -> dict:

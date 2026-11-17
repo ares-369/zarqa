@@ -21,7 +21,7 @@ def collector(cfg, store: KnowledgeStore | None = None, **kw) -> Collector:
 
 
 def source(cfg, name: str) -> dict:
-    for s in sources_from(cfg):
+    for s in sources_from(cfg, include_disabled=True):      # a switched-off source can still be pulled by hand
         if s["name"] == name:
             return s
     raise KeyError(f"no source named {name!r}")

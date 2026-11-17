@@ -3,7 +3,36 @@
 Zarqa collects from the internet, from other intel platforms, and from what people add by hand. Each item
 becomes a **document**, stored once (by content), then [extracted](extraction.md).
 
-## Sources
+## Built-in sources (on by default)
+
+Zarqa ships with about 30 well-known public sources, so a fresh install starts collecting without any setup
+(`zarqa sources` lists them; the list is `zarqa/collect/catalog.yaml`):
+
+| Category | Sources | Reliability |
+|---|---|---|
+| government | national CERT and cyber-agency advisories (US, UK, Canada, EU, Australia) | B |
+| research | research teams and incident responders: SANS ISC, Talos, Unit 42, Microsoft, Google Threat Intelligence, Securelist, ESET, Check Point, SentinelLabs, The DFIR Report, Huntress, Sophos, Volexity, Proofpoint (B); Malwarebytes, Recorded Future (C) | B/C |
+| news | BleepingComputer, The Hacker News, SecurityWeek, The Record, Dark Reading, Krebs on Security, Help Net Security | C |
+| lists | CISA known-exploited vulnerabilities (A, tags CVEs `kev`), abuse.ch Feodo Tracker botnet C2 addresses (B, CC0), Emerging Threats compromised hosts (C) | A-C |
+
+Turn them off:
+
+```yaml
+default_sources:
+  enabled: false              # every built-in source off (air-gapped installs, or only your own feeds)
+  disable: [recorded-future]  # or single ones by name
+```
+
+or `zarqa sources disable --all`, `zarqa sources disable talos unit42`, `zarqa sources enable talos`, or the switches on
+the Sources page (admins). A source of your own with the same name replaces the built-in one (for example to change
+its interval or reliability); `enabled: false` switches one of your own off. A switched-off source can still be
+pulled by hand. The reliability letters are a starting point: change them to your own judgement. The demo has no
+built-in sources.
+
+All built-in URLs were checked reachable on 2026-11-17. Some publishers refuse some networks (one advisory feed
+returned 403 from one of our test addresses and worked from another): `zarqa sources` shows the last error.
+
+## Your own sources
 
 Listed under `sources:` in `config.yaml`. Pulled every `interval_minutes` by the server's scheduler
 (`0` = only by hand), or now with `zarqa sources pull [NAME]` or the Sources page.

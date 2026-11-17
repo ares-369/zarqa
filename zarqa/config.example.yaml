@@ -184,7 +184,14 @@ mcp:
   token_role: viewer         # viewer: read tools; operator: also ask
   expose: []                 # limit to these tool names (empty = all)
 
-# What to collect. Kinds: feed (RSS/Atom), page, list (text/csv/json/stix), connector. docs/collection.md
+# Built-in sources: about 30 well-known public feeds and lists (government advisories, research teams, security
+# news, known-exploited CVEs, botnet C2 addresses), ON by default. `zarqa sources` lists them. docs/collection.md
+default_sources:
+  enabled: true              # false: turn every built-in source off (air-gapped installs, or only your own feeds)
+  disable: []                # or turn single ones off by name, e.g. [recorded-future, et-compromised-ips]
+
+# Your own sources. Kinds: feed (RSS/Atom), page, list (text/csv/json/stix), connector. One with the same name as a
+# built-in source replaces it; enabled: false switches one of yours off. docs/collection.md
 sources: []
 #  - name: gov-advisories
 #    kind: feed

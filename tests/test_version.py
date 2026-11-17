@@ -20,6 +20,6 @@ def test_versions_agree():
 def test_package_data_lists_every_data_file():
     """Files the code reads at run time must be in the wheel (pyproject package-data)."""
     text = (ROOT / "pyproject.toml").read_text()
-    for f in ("zarqa/intel/attack_data.json", "zarqa/config.example.yaml"):
+    for f in ("zarqa/intel/attack_data.json", "zarqa/config.example.yaml", "zarqa/collect/catalog.yaml"):
         assert (ROOT / f).exists()
-    assert '"intel/*.json"' in text and '"config.example.yaml"' in text
+    assert '"intel/*.json"' in text and '"config.example.yaml"' in text and '"collect/*.yaml"' in text

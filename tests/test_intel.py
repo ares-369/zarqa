@@ -379,7 +379,8 @@ def test_due_sources(home):
     from zarqa.intel.service import due_sources
     from zarqa.intel.store import store_for
     write_cfg(home, lambda d: d.update(sources=[{"name": "a", "url": "https://x.example/f", "interval_minutes": 5},
-                                                {"name": "b", "url": "https://x.example/g"}]))
+                                                {"name": "b", "url": "https://x.example/g"}],
+                                       default_sources={"enabled": False}))
     cfg = config.load_config()
     st = store_for(cfg)
     assert due_sources(cfg, st) == ["a"]
@@ -413,7 +414,8 @@ def test_intel_api(home, monkeypatch):
         "entities"] == 1
     st = c.get("/api/intel/stats").json
     assert st["entities"]["ipv4"] >= 2 and st["attack_version"]
-    assert c.get("/api/sources").json == []
+    src = c.get("/api/sources").json
+    assert src["defaults"]["enabled"] and all(x["builtin"] for x in src["sources"])
     assert c.post("/api/sources/nope/pull").status_code == 404
     assert c.post("/api/documents", json={}).status_code == 400
 

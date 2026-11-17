@@ -1,0 +1,40 @@
+# Built-in sources: well-known public threat intelligence feeds, on by default.
+# Turn them all off with  default_sources: {enabled: false}  or single ones with  default_sources: {disable: [name]}
+# (or the Sources page, or `zarqa sources disable NAME`). A source of your own with the same name replaces the one here.
+# reliability: Admiralty source letter (docs/confidence.md). Checked reachable on 2026-11-17.
+sources:
+  # Government and national CERT advisories
+  - {name: cisa-advisories, category: government, kind: feed, url: "https://www.cisa.gov/cybersecurity-advisories/all.xml", reliability: B, interval_minutes: 180, max_items: 15, description: "US CISA advisories and alerts"}
+  - {name: ncsc-uk, category: government, kind: feed, url: "https://www.ncsc.gov.uk/api/1/services/v1/report-rss-feed.xml", reliability: B, interval_minutes: 360, max_items: 10, description: "UK NCSC reports"}
+  - {name: cccs-canada, category: government, kind: feed, url: "https://www.cyber.gc.ca/api/cccs/rss/v1/get?feed=alerts_advisories&lang=en", reliability: B, interval_minutes: 360, max_items: 15, description: "Canadian Centre for Cyber Security alerts and advisories"}
+  - {name: cert-eu, category: government, kind: feed, url: "https://cert.europa.eu/publications/security-advisories-rss", reliability: B, interval_minutes: 360, max_items: 10, description: "CERT-EU security advisories"}
+  - {name: acsc-australia, category: government, kind: feed, url: "https://www.cyber.gov.au/rss/advisories", reliability: B, interval_minutes: 360, max_items: 10, description: "Australian Cyber Security Centre advisories"}
+  # Research teams and incident responders
+  - {name: sans-isc, category: research, kind: feed, url: "https://isc.sans.edu/rssfeed_full.xml", reliability: B, interval_minutes: 180, max_items: 10, description: "SANS Internet Storm Center diaries"}
+  - {name: talos, category: research, kind: feed, url: "https://blog.talosintelligence.com/rss/", reliability: B, interval_minutes: 360, max_items: 10, description: "Cisco Talos research blog"}
+  - {name: unit42, category: research, kind: feed, url: "https://unit42.paloaltonetworks.com/feed/", reliability: B, interval_minutes: 360, max_items: 10, description: "Palo Alto Networks Unit 42 research"}
+  - {name: microsoft-security, category: research, kind: feed, url: "https://www.microsoft.com/en-us/security/blog/feed/", reliability: B, interval_minutes: 360, max_items: 10, description: "Microsoft Security blog and threat intelligence"}
+  - {name: google-threat-intel, category: research, kind: feed, url: "https://cloudblog.withgoogle.com/topics/threat-intelligence/rss/", reliability: B, interval_minutes: 360, max_items: 10, description: "Google Threat Intelligence Group (incl. Mandiant)"}
+  - {name: securelist, category: research, kind: feed, url: "https://securelist.com/feed/", reliability: B, interval_minutes: 360, max_items: 10, description: "Kaspersky GReAT research"}
+  - {name: welivesecurity, category: research, kind: feed, url: "https://www.welivesecurity.com/en/rss/feed/", reliability: B, interval_minutes: 360, max_items: 10, description: "ESET research"}
+  - {name: checkpoint-research, category: research, kind: feed, url: "https://research.checkpoint.com/feed/", reliability: B, interval_minutes: 360, max_items: 10, description: "Check Point Research"}
+  - {name: sentinellabs, category: research, kind: feed, url: "https://www.sentinelone.com/labs/feed/", reliability: B, interval_minutes: 360, max_items: 10, description: "SentinelLabs research"}
+  - {name: dfir-report, category: research, kind: feed, url: "https://thedfirreport.com/feed/", reliability: B, interval_minutes: 720, max_items: 10, description: "The DFIR Report intrusion write-ups"}
+  - {name: huntress, category: research, kind: feed, url: "https://www.huntress.com/blog/rss.xml", reliability: B, interval_minutes: 360, max_items: 10, description: "Huntress threat research"}
+  - {name: sophos-research, category: research, kind: feed, url: "https://news.sophos.com/en-us/category/threat-research/feed/", reliability: B, interval_minutes: 360, max_items: 10, description: "Sophos X-Ops threat research"}
+  - {name: volexity, category: research, kind: feed, url: "https://www.volexity.com/feed/", reliability: B, interval_minutes: 720, max_items: 10, description: "Volexity threat research"}
+  - {name: malwarebytes, category: research, kind: feed, url: "https://www.malwarebytes.com/blog/feed/index.xml", reliability: C, interval_minutes: 360, max_items: 10, description: "Malwarebytes Labs"}
+  - {name: proofpoint, category: research, kind: feed, url: "https://www.proofpoint.com/us/threat-insight-blog.xml", reliability: B, interval_minutes: 360, max_items: 10, description: "Proofpoint threat insight"}
+  - {name: recorded-future, category: research, kind: feed, url: "https://www.recordedfuture.com/feed", reliability: C, interval_minutes: 360, max_items: 10, description: "Recorded Future blog and Insikt research"}
+  # Security news
+  - {name: bleepingcomputer, category: news, kind: feed, url: "https://www.bleepingcomputer.com/feed/", reliability: C, interval_minutes: 120, max_items: 10, description: "BleepingComputer"}
+  - {name: thehackernews, category: news, kind: feed, url: "https://feeds.feedburner.com/TheHackersNews", reliability: C, interval_minutes: 120, max_items: 10, description: "The Hacker News"}
+  - {name: securityweek, category: news, kind: feed, url: "https://www.securityweek.com/feed/", reliability: C, interval_minutes: 180, max_items: 10, description: "SecurityWeek"}
+  - {name: therecord, category: news, kind: feed, url: "https://therecord.media/feed", reliability: C, interval_minutes: 180, max_items: 10, description: "The Record"}
+  - {name: darkreading, category: news, kind: feed, url: "https://www.darkreading.com/rss.xml", reliability: C, interval_minutes: 180, max_items: 10, description: "Dark Reading"}
+  - {name: krebsonsecurity, category: news, kind: feed, url: "https://krebsonsecurity.com/feed/", reliability: C, interval_minutes: 360, max_items: 10, description: "Krebs on Security"}
+  - {name: helpnetsecurity, category: news, kind: feed, url: "https://www.helpnetsecurity.com/feed/", reliability: C, interval_minutes: 180, max_items: 10, description: "Help Net Security"}
+  # Indicator and vulnerability lists
+  - {name: cisa-kev, category: lists, kind: list, url: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", format: json, list_key: vulnerabilities, value_field: cveID, type: cve, tags: [kev], context: "", reliability: A, interval_minutes: 720, description: "CISA catalogue of known exploited vulnerabilities (tags CVEs kev; relevance counts them)"}
+  - {name: feodo-tracker, category: lists, kind: list, url: "https://feodotracker.abuse.ch/downloads/ipblocklist_recommended.txt", format: text, type: ipv4, tags: [botnet-c2], reliability: B, interval_minutes: 360, description: "abuse.ch Feodo Tracker botnet C2 servers (recommended list, CC0)"}
+  - {name: et-compromised-ips, category: lists, kind: list, url: "https://rules.emergingthreats.net/blockrules/compromised-ips.txt", format: text, type: ipv4, tags: [compromised], reliability: C, interval_minutes: 720, description: "Emerging Threats open list of compromised hosts"}

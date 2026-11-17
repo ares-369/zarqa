@@ -25,6 +25,8 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
 
 ## What works today
 
+- **Starts collecting on its own.** About 30 well-known public sources (government advisories, research teams,
+  security news, known-exploited CVEs, botnet C2 lists) are on by default; turn them all off, or single ones.
 - **Collect from the internet and from other platforms.** RSS/Atom feeds (with the full article), pages,
   PDFs, indicator lists (text, CSV, JSON, STIX), and pulls from other intel platforms through MCP
   connectors or the built-in STIX/TAXII 2.1 and REST bridges. On a schedule, or by hand.

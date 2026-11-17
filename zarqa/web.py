@@ -162,15 +162,39 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
 
     @app.route("/api/sources")
     def sources():
-        from .collect.collector import sources_from
+        from .collect.collector import default_settings, sources_from
         st = kstore().source_state()
-        return jsonify([{**{k: v for k, v in s.items() if k not in ("headers_env", "arguments")},
-                         "state": st.get(s["name"], {})} for s in sources_from(get_config())])
+        c = get_config()
+        return jsonify({"defaults": default_settings(c.raw),
+                        "sources": [{**{k: v for k, v in s.items() if k not in ("headers_env", "arguments")},
+                                     "state": st.get(s["name"], {})} for s in sources_from(c, include_disabled=True)]})
+
+    @app.route("/api/settings/sources", methods=["POST"])
+    def settings_sources():
+        from .collect.collector import builtin_sources
+        from .config import set_default_sources, set_own_source_enabled
+        b = request.get_json(silent=True) or {}
+        try:
+            if "all_builtin" in b:
+                d = set_default_sources(enabled=bool(b["all_builtin"]))
+            elif b.get("name"):
+                name, on = str(b["name"]), bool(b.get("enabled"))
+                if name in {s["name"] for s in builtin_sources()} and name not in {
+                        s.get("name") for s in (get_config().raw.get("sources") or [])}:
+                    d = set_default_sources(enable=[name]) if on else set_default_sources(disable=[name])
+                else:
+                    set_own_source_enabled(name, on)
+                    d = {}
+            else:
+                return jsonify({"error": "send all_builtin or name and enabled"}), 400
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "defaults": d})
 
     @app.route("/api/sources/<name>/pull", methods=["POST"])
     def source_pull(name):
         from .collect.collector import sources_from
-        if name not in {s["name"] for s in sources_from(get_config())}:
+        if name not in {s["name"] for s in sources_from(get_config(), include_disabled=True)}:
             return jsonify({"error": "no such source"}), 404
         jid = jobs.submit("pull", {"source": name}, None, task="pull", params={"source": name, "actor": actor()})
         return jsonify({"job_id": jid})

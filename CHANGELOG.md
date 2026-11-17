@@ -7,6 +7,11 @@ All notable changes are listed here. The format follows
 
 ### Added
 
+- Built-in sources: about 30 well-known public feeds and lists (government advisories, research teams, security
+  news, CISA known-exploited CVEs, abuse.ch Feodo Tracker, Emerging Threats compromised hosts), on by default with a
+  reliability letter each. `default_sources: {enabled, disable}`, `zarqa sources enable|disable NAME|--all`, switches
+  on the Sources page; your own source of the same name replaces a built-in one; `enabled: false` for your own.
+
 - Confidence, kept apart from relevance: every entity gets a NATO Admiralty rating (source reliability A-F, set
   per source; credibility 1-6 from independent corroboration and disagreement) and a 0-100 confidence derived from
   it. Shown on entity pages, in lookups and to the investigation model; exported as STIX `confidence` plus

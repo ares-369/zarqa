@@ -339,15 +339,30 @@ async function brand() {
 
 // ---------------- Sources ----------------
 async function sources() {
-  const rows = await api("/api/sources");
-  main.append(section("Sources", "rss", h("p", { class: "muted small" }, "Feeds, pages, indicator lists and connector pulls, configured in config.yaml (sources:). Each new item is stored once and extracted."),
-    rows.length ? h("table", { class: "wrap cards" }, h("thead", {}, h("tr", {}, ["Name", "Kind", "Every", "Last pull", "Documents", ""].map((x) => h("th", {}, x)))),
-      h("tbody", {}, rows.map((s) => h("tr", {}, h("td", {}, h("b", {}, s.name), h("div", { class: "small muted" }, s.url || `${s.connector}/${s.tool}`)),
-        h("td", {}, s.kind || "feed"), h("td", {}, s.interval_minutes ? `${s.interval_minutes} min` : "by hand"),
-        h("td", { class: "small" }, when(s.state.last_pull) || "never", s.state.last_error ? h("div", { class: "bad small" }, s.state.last_error) : null),
-        h("td", {}, s.state.documents || 0),
-        h("td", {}, h("button", { "data-need": "op", class: "ghost", onclick: async () => { const r = await post(`/api/sources/${s.name}/pull`); toast("Pull started (job " + r.job_id + ")."); } }, icon("download"), "Pull now"))))))
-      : h("p", { class: "muted" }, "No sources yet. Add them under sources: in config.yaml; see docs/collection.md.")));
+  const j = await api("/api/sources");
+  const rows = j.sources;
+  const builtinOn = j.defaults.enabled;
+  const toggle = async (body) => { await post("/api/settings/sources", body); route(); };
+  const cats = ["government", "research", "news", "lists"];
+  const groups = [...cats.map((c) => [c, rows.filter((r) => r.builtin && r.category === c)]),
+    ["other built-in", rows.filter((r) => r.builtin && !cats.includes(r.category))], ["yours", rows.filter((r) => !r.builtin)]]
+    .filter(([, list]) => list.length);
+  main.append(section("Sources", "rss",
+    h("p", { class: "muted small" }, "Zarqa comes with well-known public feeds and lists, on by default. Turn them all off, or single ones. Your own sources (sources: in config.yaml) replace a built-in one of the same name. Each new item is stored once and extracted."),
+    h("div", { class: "row" }, h("span", {}, "Built-in sources are ", h("b", { class: builtinOn ? "ok" : "warn" }, builtinOn ? "on" : "off"), ". "),
+      h("button", { "data-need": "admin", class: "ghost", onclick: () => toggle({ all_builtin: !builtinOn }) }, icon(builtinOn ? "toggle-switch-off-outline" : "toggle-switch"), builtinOn ? "Turn all built-in sources off" : "Turn built-in sources on")),
+    groups.map(([g, list]) => h("div", { class: "found" }, h("h3", {}, g, h("span", { class: "muted small" }, ` ${list.filter((r) => r.enabled).length} of ${list.length} on`)),
+      h("table", { class: "wrap cards" }, h("tbody", {}, list.map((s) => h("tr", { class: s.enabled ? "" : "muted" },
+        h("td", {}, h("b", {}, s.name), h("div", { class: "small muted" }, s.description || s.url || `${s.connector}/${s.tool}`)),
+        h("td", { class: "small" }, s.kind || "feed", " ", h("span", { class: "badge rating", title: "source reliability (Admiralty)" }, s.reliability || "F")),
+        h("td", { class: "small" }, s.interval_minutes ? `every ${s.interval_minutes} min` : "by hand"),
+        h("td", { class: "small" }, when(s.state.last_pull) || "never", s.state.last_error ? h("div", { class: "bad small" }, s.state.last_error) : null,
+          s.state.documents ? h("div", { class: "muted" }, `${s.state.documents} documents`) : null),
+        h("td", {}, h("div", { class: "row" },
+          h("button", { "data-need": "admin", class: "ghost " + (s.enabled ? "tg-on" : "tg-off"), disabled: s.builtin && !builtinOn ? true : null,
+            title: s.builtin && !builtinOn ? "all built-in sources are off" : "", onclick: () => toggle({ name: s.name, enabled: !s.enabled }) },
+            icon(s.enabled ? "toggle-switch" : "toggle-switch-off-outline"), s.enabled ? "On" : "Off"),
+          h("button", { "data-need": "op", class: "ghost", onclick: async () => { const r = await post(`/api/sources/${s.name}/pull`); toast("Pull started (job " + r.job_id + ")."); } }, icon("download"), "Pull now")))))))))));
 }
 
 // ---------------- Connectors ----------------

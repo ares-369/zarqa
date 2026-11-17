@@ -26,7 +26,7 @@ def build(home: Path, *, run: bool = False) -> dict:
         "organization": ORG, "requirements": REQUIREMENTS,
         "extract": {"model": True}, "relevance": {"model": False},
         "brand": {"watch": [{"domain": "sampleutility.example", "names": ["sampleutility", "Sample Utility"]}]},
-        "privacy": {"mask_for": []}, "connectors": [], "sources": [],
+        "privacy": {"mask_for": []}, "connectors": [], "sources": [], "default_sources": {"enabled": False},
     }
     (home / "config.yaml").write_text(f"# Zarqa demo: {LABEL}\n" + yaml.safe_dump(cfg_data, sort_keys=False))
     env = home / ".env"

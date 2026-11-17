@@ -39,6 +39,8 @@ import json
 import os
 import re
 import xml.etree.ElementTree as ET
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from ..intel.extract import extract, guess_type
@@ -76,19 +78,72 @@ def validate_source(s: dict) -> dict:
         from ..intel.credibility import valid_letter
         if not valid_letter(s["reliability"]):
             raise ValueError(f"source {name}: reliability must be a letter A-F (Admiralty scale)")
+    for k in ("category", "description"):
+        if k in s and not isinstance(s[k], str):
+            raise ValueError(f"source {name}: {k} must be text")
+    if "enabled" in s and not isinstance(s["enabled"], bool):
+        raise ValueError(f"source {name}: enabled must be true or false")
     if not isinstance(s.get("headers_env", {}) or {}, dict):
         raise ValueError(f"source {name}: headers_env must be a mapping of header to .env variable")
     return s
 
 
-def sources_from(cfg) -> list[dict]:
-    items = list(((cfg.raw or {}).get("sources") or []) if cfg is not None else [])
-    out = [validate_source(dict(s)) for s in items]
-    names = [s["name"] for s in out]
+_CATALOG = Path(__file__).with_name("catalog.yaml")
+
+
+@lru_cache(maxsize=1)
+def builtin_sources() -> tuple[dict, ...]:
+    """The built-in catalogue of public sources (collect/catalog.yaml)."""
+    import yaml
+    data = yaml.safe_load(_CATALOG.read_text(encoding="utf-8")) or {}
+    return tuple(validate_source(dict(s)) for s in data.get("sources") or [])
+
+
+def default_settings(raw: dict) -> dict:
+    d = (raw or {}).get("default_sources")
+    d = d if isinstance(d, dict) else {}
+    return {"enabled": bool(d.get("enabled", True)), "disable": [str(x) for x in d.get("disable") or []]}
+
+
+def validate_defaults(raw: dict) -> None:
+    d = (raw or {}).get("default_sources")
+    if d is None:
+        return
+    if not isinstance(d, dict):
+        raise ValueError("default_sources: must be a mapping with enabled and disable")
+    if not isinstance(d.get("disable", []) or [], list):
+        raise ValueError("default_sources.disable: must be a list of built-in source names")
+    known = {s["name"] for s in builtin_sources()}
+    unknown = [x for x in d.get("disable") or [] if str(x) not in known]
+    if unknown:
+        import difflib
+        hints = {u: difflib.get_close_matches(str(u), known, n=1) for u in unknown}
+        raise ValueError("default_sources.disable: not built-in sources: "
+                         + ", ".join(f"{u}" + (f" (did you mean {h[0]}?)" if h else "") for u, h in hints.items()))
+
+
+def sources_from(cfg, *, include_disabled: bool = False) -> list[dict]:
+    """Sources to collect from: the built-in catalogue (unless turned off) and your own ``sources:``.
+
+    A source of your own with the same name as a built-in one replaces it. Built-in sources carry
+    ``builtin: true``; switched-off ones carry ``enabled: false`` and are left out unless ``include_disabled``."""
+    raw = (cfg.raw or {}) if cfg is not None else {}
+    items = list(raw.get("sources") or [])
+    own = [validate_source(dict(s)) for s in items]
+    names = [s["name"] for s in own]
     dupes = sorted({n for n in names if names.count(n) > 1})
     if dupes:
         raise ValueError(f"duplicate source names: {dupes}")
-    return out
+    ds = default_settings(raw)
+    out = []
+    if cfg is not None:
+        for b in builtin_sources():
+            if b["name"] in names:
+                continue
+            on = ds["enabled"] and b["name"] not in ds["disable"]
+            out.append({**b, "builtin": True, "enabled": on})
+    out += [{**s, "builtin": False, "enabled": s.get("enabled", True) is not False} for s in own]
+    return out if include_disabled else [s for s in out if s["enabled"]]
 
 
 def parse_feed(xml_text: str) -> list[dict]:
