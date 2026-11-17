@@ -62,6 +62,7 @@ def call(name: str, args: dict[str, Any], *, cfg, store: KnowledgeStore, actor: 
         for e in hits[:3]:
             out.append({"type": e["type"], "value": e["display"], "first_seen": e["first_seen"][:10],
                         "last_seen": e["last_seen"][:10], "times_seen": e["seen_count"], "status": e["status"],
+                        "rating": e.get("rating") or "F6", "confidence": e["confidence"],
                         "tags": e["tags"], "attack_id": e["ref"], "sightings": _brief_mentions(store, e["id"]),
                         "relations": _relations(store, e["id"]),
                         "enrichment": [{"by": r["enricher"], "when": r["ts"][:16], "summary": r["summary"]}

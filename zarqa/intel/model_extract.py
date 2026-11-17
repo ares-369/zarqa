@@ -39,7 +39,8 @@ Return ONE JSON object and nothing else:
   "indicators": [{{"value": "exactly as listed below", "role": "malicious|benign|victim|reference", "quote": "..."}}]}}
 
 Rules:
-- "quote" is a short passage (at most 25 words) copied character for character from the document. If you
+- "quote" is a short passage copied character for character from the document: at most 25 words for an item;
+  for a relation, the sentence (or two adjacent sentences) that names both ends. If you
   cannot quote it, leave the item out.
 - Only what the document states. Do not add what you know from elsewhere, and do not guess attribution.
 - actor = a threat group or person behind attacks; malware = malicious software; tool = legitimate or
@@ -108,6 +109,16 @@ def _name_in(name: str, quote: str) -> bool:
         if len(core) >= 4 and f" {core} " in qn:      # the distinctive part must be there, and not too short
             return True
     return False
+
+
+def _end_in(name: str, end: tuple[str, str], quote: str) -> bool:
+    """Does the relation's quote name this end? Indicators, CVEs and technique IDs by value (defanged or
+    not); names by the name the model used, the kept name or a known alias."""
+    kind, value = end
+    if kind in ("ioc", "cve", "technique"):
+        q = squash(quote)
+        return value.lower() in q or name.lower() in q
+    return _name_in(name, quote) or _name_in(value, quote)
 
 
 def check(reply: dict, text: str, indicators: list[str]) -> dict:
@@ -188,6 +199,12 @@ def check(reply: dict, text: str, indicators: list[str]) -> dict:
         quote = str(r.get("quote", ""))
         if not _in(quote, sq):
             dropped.append({"item": f"{a} {rt} {b}"[:120], "why": "ungrounded: quote not in the document"})
+            continue
+        missing = [n for n, e in ((a, src), (b, dst)) if not _end_in(n, e, quote)]
+        if missing:
+            # A real quote is not enough: it must be the sentence that links the two.
+            dropped.append({"item": f"{a} {rt} {b}"[:120],
+                            "why": f"quote does not name {' or '.join(missing)}"})
             continue
         rels.append({"source": src, "type": rt, "target": dst, "quote": quote.strip()})
     return {"summary": str(reply.get("summary", ""))[:800], "items": items, "relations": rels,

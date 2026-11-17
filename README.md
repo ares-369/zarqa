@@ -45,6 +45,9 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
   is an allowed answer. ([investigations](docs/investigations.md))
 - **Brand watch.** Lookalikes of your domains, resolved and checked: how new they are, whether the page uses
   your name or asks for a password, or is parked. Scored and tracked with a status. ([brand](docs/brand.md))
+- **Confidence apart from relevance.** Each entity gets an Admiralty rating (how reliable its sources are, how
+  many independent ones agree, whether they disagree) and a confidence number, so a relevant but thinly supported
+  item does not look confirmed. ([confidence](docs/confidence.md))
 - **Enrichment on request.** Connectors declare their lookups; built-in EPSS and RDAP are opt-in and never
   sent your own or internal values. ([enrichment](docs/enrichment.md))
 - **Shares in standard formats.** STIX 2.1 and MISP-format exports, a read-only TAXII 2.1 server, pushes to

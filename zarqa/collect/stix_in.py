@@ -63,13 +63,14 @@ def load(content: str | dict) -> list[dict]:
 
 
 def import_bundle(store: KnowledgeStore, content: str | dict, *, source: str, url: str = "", confidence: int = 60,
-                  tags: list[str] | None = None, method: str = "feed", added_by: str = "") -> dict[str, Any]:
+                  tags: list[str] | None = None, method: str = "feed", added_by: str = "",
+                  reliability: str = "F") -> dict[str, Any]:
     objs = load(content)
     summary = {"objects": len(objs), "indicators": 0, "entities": 0, "relations": 0, "reports": [], "skipped": 0}
     head = f"STIX bundle from {source}: {len(objs)} objects"
     body = "\n".join(f"{o.get('type')}: {o.get('name') or o.get('pattern') or o.get('id')}" for o in objs[:2000])
     doc = store.add_document(source=source, kind="stix", text=f"{head}\n{body}", url=url, title=head,
-                             tags=tags, added_by=added_by)
+                             tags=tags, added_by=added_by, reliability=reliability)
     store.update_document(doc["id"], status="extracted", method="stix")
     ids: dict[str, int] = {}
     for o in objs:
@@ -97,7 +98,7 @@ def import_bundle(store: KnowledgeStore, content: str | dict, *, source: str, ur
                 r = store.add_document(source=source, kind="report", text=text, url=url,
                                        title=str(o.get("name") or o.get("abstract") or "STIX report")[:300],
                                        published=str(o.get("published") or o.get("created") or ""), tags=tags,
-                                       added_by=added_by)
+                                       added_by=added_by, reliability=reliability)
                 if r["new"]:
                     summary["reports"].append(r["id"])
         else:
@@ -122,4 +123,6 @@ def import_bundle(store: KnowledgeStore, content: str | dict, *, source: str, ur
                                                   snippet=str(o.get("description") or "")[:300]):
             summary["relations"] += 1
     summary["document_id"] = doc["id"]
+    from ..intel.credibility import refresh_document
+    refresh_document(store, doc["id"])
     return summary

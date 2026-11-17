@@ -37,6 +37,7 @@ reference.
 | a technique without a valid ATT&CK ID | cannot be mapped |
 | an indicator the rules did not find | models may label indicators, never add them |
 | a relation whose ends were not kept, or whose quote is not in the document | unsupported |
+| a relation whose quote does not name both ends | a real sentence, but not the one that links them |
 
 What was dropped is shown by `zarqa process` and the API. The document text is sent wrapped as untrusted
 data, and the model is told never to follow instructions in it. Prompts to cloud providers are masked

@@ -66,6 +66,8 @@ def entity_object(e: dict, producer: str) -> dict | None:
         base["confidence"] = int(e["confidence"])
     if e.get("tags"):
         base["labels"] = [str(x)[:100] for x in e["tags"]][:20]
+    if e.get("rating"):
+        base["x_zarqa_admiralty_rating"] = e["rating"]     # source reliability A-F + credibility 1-6
     if t in INDICATOR_TYPES:
         pat = pattern(t, v)
         if not pat:

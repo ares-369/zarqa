@@ -5,6 +5,20 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Confidence, kept apart from relevance: every entity gets a NATO Admiralty rating (source reliability A-F, set
+  per source; credibility 1-6 from independent corroboration and disagreement) and a 0-100 confidence derived from
+  it. Shown on entity pages, in lookups and to the investigation model; exported as STIX `confidence` plus
+  `x_zarqa_admiralty_rating`, and as MISP `admiralty-scale` tags. docs/confidence.md.
+
+### Changed
+
+- A relation from the model is kept only if its quote names both ends (the sentence, or two adjacent sentences,
+  that links them), not just any real sentence from the document.
+- A source's own confidence values (for example STIX `confidence`) no longer set Zarqa's confidence; rate the
+  source instead.
+
 ## [0.1.0-beta] — 2026-11-17
 
 First release.

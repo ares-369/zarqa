@@ -72,6 +72,10 @@ def validate_source(s: dict) -> dict:
     for k in ("interval_minutes", "max_items", "confidence"):
         if k in s and not isinstance(s[k], int):
             raise ValueError(f"source {name}: {k} must be a whole number")
+    if "reliability" in s:
+        from ..intel.credibility import valid_letter
+        if not valid_letter(s["reliability"]):
+            raise ValueError(f"source {name}: reliability must be a letter A-F (Admiralty scale)")
     if not isinstance(s.get("headers_env", {}) or {}, dict):
         raise ValueError(f"source {name}: headers_env must be a mapping of header to .env variable")
     return s
@@ -155,6 +159,8 @@ class Collector:
         self.allow_private = bool(c.get("allow_private_urls", False))
         self.fetch_articles = bool(c.get("fetch_articles", True))
         self.max_chars = int(c.get("max_document_chars", 200_000))
+        self.default_reliability = str(c.get("default_reliability", "F")).upper()
+        self.manual_reliability = str(c.get("manual_reliability", "F")).upper()
         self._fetch = fetch or fetch_url
         self._hub = hub
 
@@ -181,7 +187,8 @@ class Collector:
              actor: str = "") -> dict:
         return self.store.add_document(source=src["name"], kind=kind, text=text, url=url, title=title,
                                        published=published, tags=list(src.get("tags") or []), added_by=actor,
-                                       max_chars=self.max_chars)
+                                       max_chars=self.max_chars,
+                                       reliability=str(src.get("reliability", self.default_reliability)))
 
     def _feed(self, src: dict, out: dict, actor: str) -> None:
         doc = self._get(src["url"])
@@ -228,7 +235,7 @@ class Collector:
             from .stix_in import import_bundle
             r = import_bundle(self.store, raw, source=src["name"], url=src["url"],
                               confidence=int(src.get("confidence", 60)), tags=list(src.get("tags") or []),
-                              added_by=actor)
+                              added_by=actor, reliability=str(src.get("reliability", self.default_reliability)))
             out["values"] += r["indicators"] + r["entities"]
             out["new_documents"] += r["reports"]
             return
@@ -254,6 +261,8 @@ class Collector:
                 continue
             self.store.add_mention(e["id"], d["id"], method="feed", context=str(src.get("context", "malicious")))
             out["values"] += 1
+        from ..intel.credibility import refresh_document
+        refresh_document(self.store, d["id"])
 
     def _connector(self, src: dict, out: dict, actor: str) -> None:
         from ..connectors import get_hub
@@ -278,7 +287,7 @@ class Collector:
                 from .stix_in import import_bundle
                 r = import_bundle(self.store, {"objects": objs}, source=src["name"], method="connector",
                                   confidence=int(src.get("confidence", 60)), tags=list(src.get("tags") or []),
-                                  added_by=actor)
+                                  added_by=actor, reliability=str(src.get("reliability", self.default_reliability)))
                 out["values"] += r["indicators"] + r["entities"]
                 out["new_documents"] += r["reports"]
                 return
@@ -289,32 +298,34 @@ class Collector:
     # ---- added by people ----
     def add_text(self, text: str, *, title: str = "", url: str = "", actor: str = "", tags: list[str] | None = None) -> dict:
         return self.store.add_document(source="manual", kind="text", text=text, url=url, title=title or text[:80],
-                                       tags=tags, added_by=actor, max_chars=self.max_chars)
+                                       tags=tags, added_by=actor, max_chars=self.max_chars, reliability=self.manual_reliability)
 
     def add_url(self, url: str, *, actor: str = "", tags: list[str] | None = None) -> dict:
         doc = self._get(url)
         return self.store.add_document(source="manual", kind="url", text=doc["text"], url=doc.get("url", url),
                                        title=doc.get("title") or url, tags=tags, added_by=actor,
-                                       max_chars=self.max_chars)
+                                       max_chars=self.max_chars, reliability=self.manual_reliability)
 
     def add_file(self, path: str, *, actor: str = "", tags: list[str] | None = None) -> dict:
         if path.lower().endswith(".json"):
             raw = open(path, encoding="utf-8", errors="replace").read()  # noqa: SIM115
             try:
                 from .stix_in import import_bundle
-                r = import_bundle(self.store, raw, source="manual", tags=tags, method="manual", added_by=actor)
+                r = import_bundle(self.store, raw, source="manual", tags=tags, method="manual", added_by=actor,
+                                  reliability=self.manual_reliability)
                 return {"id": r["document_id"], "new": True, "stix": r}
             except ValueError:
                 pass
         doc = read_file(path)
         return self.store.add_document(source="manual", kind="file", text=doc["text"], title=doc.get("title", path),
-                                       tags=tags, added_by=actor, max_chars=self.max_chars)
+                                       tags=tags, added_by=actor, max_chars=self.max_chars, reliability=self.manual_reliability)
 
     def add_values(self, values: list[str], *, actor: str = "", context: str = "malicious", tags: list[str] | None = None,
                    confidence: int = 60) -> dict:
         out = {"new_documents": [], "values": 0, "skipped": 0, "errors": []}
         found = [v for vals in extract("\n".join(values)).values() for v in vals]
-        src = {"name": "manual", "context": context, "confidence": confidence, "tags": tags or []}
+        src = {"name": "manual", "context": context, "confidence": confidence, "tags": tags or [],
+               "reliability": self.manual_reliability}
         self._import_values(src, found, out, actor)
         return out
 

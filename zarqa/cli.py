@@ -215,8 +215,8 @@ def cmd_intel(a) -> int:
             print("not in the store")
             return 1
         for e in hits:
-            print(f"{e['type']} {e['display']}  first {e['first_seen'][:10]}  last {e['last_seen'][:10]}  "
-                  f"seen {e['seen_count']}  status {e['status']}")
+            print(f"{e['type']} {e['display']}  rating {e.get('rating') or 'F6'} (confidence {e['confidence']})  "
+                  f"first {e['first_seen'][:10]}  last {e['last_seen'][:10]}  seen {e['seen_count']}  status {e['status']}")
             for m in st.mentions(entity_id=e["id"], limit=10):
                 print(f"  [{m['method']}{'/' + m['context'] if m['context'] else ''}] {m['title'][:60]}: {m['snippet'][:160]}")
             for r in st.relations(entity_id=e["id"], limit=10):

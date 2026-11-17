@@ -113,6 +113,8 @@ collect:
   allow_private_urls: false  # true only for feeds on your own network
   fetch_articles: true       # feeds: also fetch each new item's article
   max_document_chars: 200000
+  default_reliability: F     # Admiralty source reliability for sources without reliability: (A best ... E, F unknown)
+  manual_reliability: F      # for what people add by hand
 
 # Extraction (docs/extraction.md). Rules always run; the extractor model adds names, relations and indicator
 # roles, and every item it returns must quote the document.
@@ -189,6 +191,7 @@ sources: []
 #    url: "https://example.org/advisories.xml"
 #    interval_minutes: 60
 #    max_items: 20
+#    reliability: B           # Admiralty letter for this source (docs/confidence.md)
 #  - name: blocklist
 #    kind: list
 #    url: "https://example.org/ips.txt"

@@ -29,9 +29,11 @@ MODEL_REPLY = {
         {"type": "actor", "name": "APT29", "quote": "The group tracked as Fancy Bear sent spearphishing emails"},
     ],
     "relations": [
-        {"source": "Fancy Bear", "type": "uses", "target": "HeadLace", "quote": "The attachment dropped a loader called HeadLace"},
+        {"source": "Fancy Bear", "type": "uses", "target": "HeadLace",
+         "quote": "The group tracked as Fancy Bear sent spearphishing emails to energy companies in Poland. "
+                  "The attachment dropped a loader called HeadLace"},
         {"source": "HeadLace", "type": "communicates_with", "target": "203.0.113.66",
-         "quote": "which contacted hxxps://update-check[.]example-cdn[.]net/api and 203.0.113.66"},
+         "quote": "a loader called HeadLace, which contacted hxxps://update-check[.]example-cdn[.]net/api and 203.0.113.66"},
         {"source": "HeadLace", "type": "uses", "target": "Invented", "quote": "dropped a loader called HeadLace"},
     ],
     "indicators": [
@@ -171,6 +173,22 @@ def test_relation_to_a_cve_found_by_the_rules(store):
         ("Tin Heron", "exploits", "CVE-2026-31337")]
 
 
+def test_relation_quote_must_name_both_ends():
+    text = ("Fancy Bear sent phishing emails. A loader called HeadLace was found on a server. "
+            "Fancy Bear used HeadLace against energy firms.")
+    items = [{"type": "actor", "name": "Fancy Bear", "quote": "Fancy Bear sent phishing emails"},
+             {"type": "malware", "name": "HeadLace", "quote": "A loader called HeadLace was found"}]
+    wrong = {"items": items, "relations": [{"source": "Fancy Bear", "type": "uses", "target": "HeadLace",
+                                            "quote": "Fancy Bear sent phishing emails"}]}
+    r = check(wrong, text, [])
+    assert r["relations"] == [] and "does not name HeadLace" in r["dropped"][0]["why"]
+    right = {"items": items, "relations": [{"source": "Sednit", "type": "uses", "target": "HeadLace",
+                                            "quote": "Fancy Bear used HeadLace against energy firms"}]}
+    items2 = [*items, {"type": "actor", "name": "Sednit", "quote": "Fancy Bear sent phishing emails"}]
+    r = check({**right, "items": items2}, text, [])
+    assert len(r["relations"]) == 1                                   # an alias in the model's name still counts
+
+
 def test_generic_words_do_not_decide_a_name():
     from zarqa.intel.model_extract import _name_in
     q = "GROOVE is first and foremost an aggressive financially motivated criminal organization."
@@ -240,9 +258,10 @@ def test_stix_import(store):
          "source_ref": "intrusion-set--1", "target_ref": "malware--1"},
         {"type": "report", "id": "report--1", "name": "Campaign write-up", "description": "HeadLace used 203.0.113.8."},
     ]}
-    r = import_bundle(store, bundle, source="platform", confidence=60)
+    r = import_bundle(store, bundle, source="platform", confidence=60, reliability="B")
     assert r["indicators"] == 2 and r["entities"] == 4 and r["relations"] == 1 and len(r["reports"]) == 1
-    assert store.find("ipv4", "203.0.113.7")["confidence"] == 80
+    ip = store.find("ipv4", "203.0.113.7")
+    assert ip["confidence"] == 75 and ip["rating"] == "B3"      # our rating of the source, not the bundle's own 80
     assert store.find("actor", "APT28")                       # Sednit is an alias
     assert store.document(r["reports"][0])["status"] == "new"   # the report text still goes through extraction
     with pytest.raises(ValueError):

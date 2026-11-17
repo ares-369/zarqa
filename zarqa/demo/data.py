@@ -8,7 +8,8 @@ DOCS = [
      "url": "https://research.lab.example/glassbridge",
      "text": """SAMPLE DATA, FICTIONAL. This report is invented for the Zarqa demo.
 
-The Glassbridge campaign targeted energy utilities in Northern Europe during the past two weeks. The operators,
+The Glassbridge campaign targeted energy utilities in Northern Europe during the past two weeks and
+delivered the Quillspin loader. The operators,
 tracked as Tin Heron, sent spearphishing emails with a malicious attachment that installed the Quillspin loader (T1566.001).
 
 Quillspin contacted its command-and-control server at hxxps://cdn-update[.]glassbridge[.]example/api and the IP address 203.0.113.45.

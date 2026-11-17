@@ -109,6 +109,8 @@ def process(store: KnowledgeStore, doc_id: int, *, cfg=None, llm=None, use_model
     hits = scan(text)
     if hits:
         out["review"] = "possible prompt injection: " + "; ".join(h["pattern"] for h in hits)
+    from .credibility import refresh_document
+    refresh_document(store, doc_id)
     from .store import now
     store.update_document(doc_id, status="extracted", method=method, review=out["review"], extracted=now(),
                           error="; ".join((out["model"] or {}).get("errors") or [])[:500])

@@ -161,7 +161,7 @@ async function docPage(id) {
   const ctx = {};
   d.mentions.forEach((m) => { if (m.context) ctx[m.entity_id] = m.context; });
   main.append(section(d.title || "Document", "file-document-outline",
-    h("div", { class: "small muted" }, `${d.source} | ${d.kind} | collected ${when(d.fetched)}`, d.published ? ` | published ${d.published}` : ""),
+    h("div", { class: "small muted" }, `${d.source} | ${d.kind} | source reliability ${d.reliability || "F"} | collected ${when(d.fetched)}`, d.published ? ` | published ${d.published}` : ""),
     d.url ? h("div", { class: "small" }, h("a", { href: d.url, rel: "noopener noreferrer", target: "_blank" }, d.url)) : null,
     h("div", { class: "row" }, h("span", { class: "badge st-" + d.status }, d.status), d.method ? methodBadge(d.method) : null,
       h("button", { "data-need": "op", class: "ghost", onclick: async () => { await post(`/api/documents/${id}/process`); toast("Processing; refresh in a moment."); } }, icon("refresh"), "Process again"),
@@ -202,7 +202,8 @@ async function entities() {
     const rows = await api(`/api/entities?limit=200&type=${t.value}&q=${encodeURIComponent(q.value)}&order=${order.value}`);
     fill(box, rows.length ? h("table", { class: "wrap cards" }, h("thead", {}, h("tr", {}, ["Type", "Value", "Seen", "First", "Last", "Conf."].map((x) => h("th", {}, x)))),
       h("tbody", {}, rows.map((e) => h("tr", {}, h("td", {}, typeBadge(e.type)), h("td", { class: "val" }, h("a", { href: `#entity/${e.id}` }, e.display)),
-        h("td", {}, e.seen_count), h("td", { class: "small muted" }, when(e.first_seen)), h("td", { class: "small muted" }, when(e.last_seen)), h("td", {}, e.confidence)))))
+        h("td", {}, e.seen_count), h("td", { class: "small muted" }, when(e.first_seen)), h("td", { class: "small muted" }, when(e.last_seen)),
+        h("td", {}, h("span", { class: "badge rating" }, e.rating || "F6"), " ", e.confidence)))))
       : h("p", { class: "muted" }, "Nothing found."));
   };
   [t, order].forEach((x) => x.addEventListener("change", load));
@@ -217,7 +218,9 @@ async function entityPage(id) {
   main.append(section(e.display, TYPE_ICON[e.type] || "tag",
     h("div", { class: "row" }, typeBadge(e.type), statusBadge(e.status), e.ref ? h("span", { class: "badge" }, "ATT&CK " + e.ref) : null,
       e.tags.map((x) => h("span", { class: "badge" }, x))),
-    h("div", { class: "small muted" }, `seen ${e.seen_count} times | first ${when(e.first_seen)} | last ${when(e.last_seen)} | confidence ${e.confidence}`,
+    h("div", { class: "row" }, h("span", { class: "badge rating", title: "Admiralty rating: source reliability A-F, credibility 1-6 (docs/confidence.md)" }, e.rating || "F6"),
+      h("span", { class: "small" }, `confidence ${e.confidence}`)),
+    h("div", { class: "small muted" }, `seen ${e.seen_count} times | first ${when(e.first_seen)} | last ${when(e.last_seen)}`,
       e.expires ? ` | expires ${e.expires.slice(0, 10)}` : ""),
     e.note ? h("p", { class: "small" }, e.note) : null,
     h("div", { class: "row", "data-need": "op" }, [["active", "check"], ["false_positive", "close-circle-outline"], ["allowlisted", "shield-check-outline"]].map(([st, ic]) =>

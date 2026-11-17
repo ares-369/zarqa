@@ -115,11 +115,13 @@ class KnowledgeStore:
                 name TEXT PRIMARY KEY, last_pull TEXT DEFAULT '', last_ok TEXT DEFAULT '', last_error TEXT DEFAULT '',
                 pulls INTEGER DEFAULT 0, documents INTEGER DEFAULT 0, etag TEXT DEFAULT '', modified TEXT DEFAULT '');
             """)
+            db.add_column(c, "documents", "reliability", "TEXT DEFAULT 'F'")
+            db.add_column(c, "entities", "rating", "TEXT DEFAULT ''")
 
     # ---- documents ----
     def add_document(self, *, source: str, kind: str, text: str, url: str = "", title: str = "",
                      published: str = "", tags: list[str] | None = None, added_by: str = "",
-                     max_chars: int = 200_000) -> dict:
+                     max_chars: int = 200_000, reliability: str = "F") -> dict:
         """Store a document once (by content). Returns ``{id, new}``."""
         text = (text or "")[:max_chars]
         if not text.strip():
@@ -130,10 +132,10 @@ class KnowledgeStore:
             if r:
                 return {"id": int(r[0]), "new": False}
             cur = c.execute(
-                "INSERT INTO documents (source, kind, url, title, published, fetched, sha, text, tags, added_by) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO documents (source, kind, url, title, published, fetched, sha, text, tags, added_by, "
+                "reliability) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (source, kind, url[:2000], (title or url or source)[:500], published[:40], now(), sha, text,
-                 _j(tags), added_by[:100]))
+                 _j(tags), added_by[:100], (reliability or "F").upper()[:1]))
             c.commit()
             return {"id": int(cur.lastrowid), "new": True}
 
@@ -412,7 +414,7 @@ class KnowledgeStore:
 
 
 _DOC_COLS = ("id", "source", "kind", "url", "title", "published", "fetched", "status", "error", "method", "summary",
-             "tags", "review", "added_by", "relevance", "relevance_reason", "extracted")
+             "tags", "review", "added_by", "relevance", "relevance_reason", "extracted", "reliability")
 
 
 def _doc(r) -> dict:

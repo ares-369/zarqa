@@ -170,3 +170,14 @@ def test_mcp_token_is_viewer_by_default(home, monkeypatch):
     assert r["result"]["isError"] and "operator" in json.dumps(r)
     basic = {"Authorization": "Basic " + base64.b64encode(b"zarqa:pw").decode()}
     assert c.post("/mcp", headers=basic, json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"}).status_code == 200
+
+
+def test_exports_carry_the_admiralty_rating(store):
+    b = stix_out.export(store, producer_name="Test", document_id=1)
+    ind = next(o for o in b["objects"] if o["type"] == "indicator")
+    assert len(ind["x_zarqa_admiralty_rating"]) == 2 and isinstance(ind["confidence"], int)
+    ev = misp.event(store, info="", document_id=1, producer="Test")["Event"]
+    a = next(x for x in ev["Attribute"] if x["type"] == "ip-dst")
+    names = {t["name"] for t in a["Tag"]}
+    assert any(n.startswith("admiralty-scale:source-reliability=") for n in names)
+    assert any(n.startswith("admiralty-scale:information-credibility=") for n in names)

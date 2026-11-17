@@ -48,10 +48,15 @@ def event(store: KnowledgeStore, *, info: str, entity_ids: list[int] | None = No
     for e in ents:
         if e["type"] in _ATTR:
             typ, cat = _ATTR[e["type"]]
-            attrs.append({"uuid": str(uuid.uuid5(NS, f"misp:{e['type']}:{e['value']}")), "type": typ, "category": cat,
-                          "value": e["value"], "to_ids": e["type"] != "cve",
-                          "comment": (e.get("_snippet") or "")[:500], "first_seen": e["first_seen"][:19],
-                          "last_seen": e["last_seen"][:19]})
+            a = {"uuid": str(uuid.uuid5(NS, f"misp:{e['type']}:{e['value']}")), "type": typ, "category": cat,
+                 "value": e["value"], "to_ids": e["type"] != "cve",
+                 "comment": (e.get("_snippet") or "")[:500], "first_seen": e["first_seen"][:19],
+                 "last_seen": e["last_seen"][:19]}
+            r = e.get("rating") or ""
+            if len(r) == 2:
+                a["Tag"] = [{"name": f'admiralty-scale:source-reliability="{r[0].lower()}"'},
+                            {"name": f'admiralty-scale:information-credibility="{r[1]}"'}]
+            attrs.append(a)
         elif e["type"] in _TAG:
             tags.append({"name": f"{_TAG[e['type']]}:\"{e['display']}\""})
     if url:
