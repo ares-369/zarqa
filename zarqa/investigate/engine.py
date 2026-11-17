@@ -209,6 +209,8 @@ def run(cfg, question: str, *, inv_id: int, istore: InvestigationStore, kstore, 
             hits = scan(text) if ok else []
             if hits:
                 review.append(f"E{n}: " + ", ".join(h["pattern"] for h in hits))
+            elif ok and '"document_flagged"' in text:
+                review.append(f"E{n}: cites a document flagged for possible prompt injection")
             step = {"n": n, "connector": conn, "tool": tool, "arguments": args, "ok": ok, "result": text,
                     "thought": str(act.get("thought", ""))[:300]}
             steps.append(step)

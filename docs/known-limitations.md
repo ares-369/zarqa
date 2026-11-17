@@ -21,3 +21,9 @@
   supported yet.
 - The privacy layer is pattern-based and can miss values, for example a name in free text. List
   anything that must never leave under `privacy.terms` or `privacy.patterns`.
+- A hostile report can plant an indicator or a name by writing it down; the rules extract it like any other.
+  Defences: the document is flagged for review if the planted text addresses an AI, the value carries its source's
+  rating (one unrated source: F3), and investigations note when they cite a flagged document. A model's label that
+  contradicts the evidence (calling a real C2 address benign) cannot be caught by the quote checks.
+- The prompt-injection scan is patterns, tested on a hand-written set by the same author; it also flags articles
+  that quote attacks.

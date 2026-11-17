@@ -12,8 +12,15 @@ All notable changes are listed here. The format follows
   it. Shown on entity pages, in lookups and to the investigation model; exported as STIX `confidence` plus
   `x_zarqa_admiralty_rating`, and as MISP `admiralty-scale` tags. docs/confidence.md.
 
+- Adversarial ingestion tests: a scored prompt-injection set (benchmarks/injection, run in CI), a scripted model
+  that obeys planted instructions in extraction and in investigations, and hostile files (entity bomb, broken and
+  expanding PDFs, oversized text). Results in docs/benchmarks.md.
+- Lookups show each source's reliability and whether its document was flagged; an investigation that cites a
+  flagged document is marked for review.
+
 ### Changed
 
+- The injection scan also catches "you are now a helpful assistant..." (an adjective before the AI word).
 - A relation from the model is kept only if its quote names both ends (the sentence, or two adjacent sentences,
   that links them), not just any real sentence from the document.
 - A source's own confidence values (for example STIX `confidence`) no longer set Zarqa's confidence; rate the

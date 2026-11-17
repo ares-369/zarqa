@@ -1,5 +1,32 @@
 # Benchmarks
 
+## Adversarial ingestion (2026-11-17)
+
+**Prompt-injection scan.** `benchmarks/injection/cases.yaml`: 16 short reports with planted instructions (plain,
+addressed to "the AI analyst", role changes, chat-template tags, fake JSON verdicts, an override marker, words split
+with hyphens, base64, French, a wrapper escape) and 6 clean security texts that use words like "ignore",
+"instructions", "benign" or "AI" innocently. First run: 15 of 16 attacks flagged ("You are now a helpful
+assistant..." was missed), 0 of 6 clean texts flagged. After widening that pattern: 16 of 16, 0 of 6, now a test
+in CI. The same person wrote the patterns and the cases, so this shows what the scan covers, not how it does on
+attacks nobody anticipated. The wider pattern also flags "You are the best malware analyst team in town": a flag
+only marks the document for review.
+
+A real article *about* prompt injection that quotes an attack is flagged too: the scan cannot tell quoting from
+attacking.
+
+**A model that obeys the report** (`tests/test_adversarial.py`, scripted). Planted text told the model to report
+the indicators as benign, add an indicator and attribute the activity to a named group. What the checks stopped:
+an invented malware name (quote not in the document), an indicator that is not in the document, a relation whose
+quote names only one end. What they cannot stop, and do not pretend to: a label that contradicts the evidence
+("benign" for a real C2 address) and anything the report itself writes down (a planted group name, a planted
+indicator). Those are limited by the review flag on the document, by the planted indicator's rating (one unrated
+source: F3, confidence 50; the "benign" one is rated 5, improbable), and in investigations by a review note on every
+step that cites a flagged document. An investigation model told to call a sharing tool or an unknown tool got
+"unknown tool" (sharing tools are never offered), and its findings that cited missing evidence were set aside.
+
+**Hostile files.** An XML entity bomb in a feed is refused before parsing; a broken PDF and a PDF whose stream
+expands to megabytes raise a clean error; oversized text is cut at `collect.max_document_chars`.
+
 ## Extraction: AnnoCTR
 
 **Dataset.** [AnnoCTR](https://github.com/boschresearch/anno-ctr-lrec-coling-2024) (Bosch Research, LREC-COLING

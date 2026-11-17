@@ -30,7 +30,7 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
         r"\b(?:system|admin|developer|security)\s+(?:override|prompt|instructions?|message)\s*[:\]-]"
         r"|\[(?:system|admin|developer)\]\s*(?:new\s+)?(?:policy|instructions?|rules?|override)\b", re.I)),
     ("addresses an AI", re.compile(
-        rf"\b(?:you\s+are\s+(?:now\s+)?(?:an?\s+|the\s+)?{_AI}\b|(?:note|message|instruction)s?\s+(?:to|for)\s+"
+        rf"\b(?:you\s+are\s+(?:now\s+)?(?:an?\s+|the\s+)?(?:[a-z-]+\s+){{0,2}}{_AI}\b|(?:note|message|instruction)s?\s+(?:to|for)\s+"
         rf"(?:the\s+|any\s+)?(?:automated\s+)?{_AI}s?\b|\bif\s+you\s+are\s+an?\s+{_AI}\b"
         rf"|\battention,?\s+(?:the\s+)?{_AI}\b|\bto\s+(?:the|any)\s+(?:automated\s+|security\s+)?{_AI}s?\b"
         rf"|\bas\s+the\s+(?:security\s+)?{_AI}\b,?\s+you\b|\b{_AI}\s*[,:]\s*(?:please\s+)?(?:ignore|disregard|override|"

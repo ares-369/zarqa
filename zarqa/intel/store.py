@@ -308,15 +308,15 @@ class KnowledgeStore:
             where.append("m.document_id=?")
             args.append(int(document_id))
         sql = ("SELECT m.id, m.entity_id, m.document_id, m.snippet, m.method, m.context, m.created, e.type, e.value, "
-               "e.display, d.title, d.url, d.source FROM mentions m JOIN entities e ON e.id=m.entity_id "
-               "JOIN documents d ON d.id=m.document_id")
+               "e.display, d.title, d.url, d.source, d.review, d.reliability FROM mentions m JOIN entities e "
+               "ON e.id=m.entity_id JOIN documents d ON d.id=m.document_id")
         if where:
             sql += " WHERE " + " AND ".join(where)
         sql += " ORDER BY m.id DESC LIMIT ?"
         with self._conn() as c:
             rows = c.execute(sql, (*args, int(limit))).fetchall()
         keys = ("id", "entity_id", "document_id", "snippet", "method", "context", "created", "type", "value",
-                "display", "title", "url", "source")
+                "display", "title", "url", "source", "review", "reliability")
         return [dict(zip(keys, r, strict=True)) for r in rows]
 
     def relations(self, *, entity_id: int | None = None, document_id: int | None = None, limit: int = 200) -> list[dict]:
