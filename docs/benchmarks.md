@@ -62,6 +62,22 @@ at a two-hour limit (about 4-5 minutes per report). On those same 27 reports:
 | Techniques (parent) precision | 0.952 | 0.937 |
 | Techniques (parent) recall | 0.262 | 0.262 |
 
+### Alias resolution (no model)
+
+Every AnnoCTR mention (all splits; nothing in Zarqa was trained on them) that the annotators linked to an ATT&CK
+group or software entry, 1,351 mentions of 101 entries, resolved with Zarqa's ATT&CK data:
+
+| | Right | Wrong | Unresolved |
+|---|---|---|---|
+| exact names and aliases | 998 (73.9%) | 45 | 308 |
+| plus loose matching (spaces and one generic suffix ignored, only when one entry fits) | 1,180 (87.3%) | 47 | 124 |
+
+The loose matching was written after seeing the first row's misses (JSSLoader for JSS Loader, NetwireRAT for
+NETWIRE, Winnti for Winnti Group), so the second row is in-sample. Most "wrong" results are not Zarqa's: 28 are
+TA456, which current ATT&CK lists under CURIUM while the 2021 annotations link it to Cleaver; 9 are "TrickBot"
+annotated as Tor and 5 "Netwire" annotated as Remcos. What stays unresolved is mostly names ATT&CK does not list
+(vendor tracking names such as TA406 and TA415, organisations such as GRU and FSB) and "Beacon" for Cobalt Strike.
+
 ### What this says
 
 - **Without a model, Zarqa rarely says something wrong, and misses most of what is there.** It finds names and

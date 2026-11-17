@@ -1,0 +1,149 @@
+{
+  "mentions": 1351,
+  "right": 1180,
+  "wrong": 47,
+  "unresolved": 124,
+  "accuracy": 0.873,
+  "short_mentions": 1345,
+  "accuracy_short": 0.877,
+  "by_kind": {
+    "groups:right": 324,
+    "groups:unresolved": 55,
+    "groups:wrong": 33,
+    "software:right": 856,
+    "software:unresolved": 69,
+    "software:wrong": 14
+  },
+  "wrong_examples": [
+    [
+      "TA456 -> CURIUM (gold Cleaver)",
+      28
+    ],
+    [
+      "TrickBot -> TrickBot (gold Tor)",
+      9
+    ],
+    [
+      "Netwire -> NETWIRE (gold Remcos)",
+      5
+    ],
+    [
+      "BARIUM -> APT41 (gold Winnti Group)",
+      2
+    ],
+    [
+      "Konni Group -> KONNI (gold Kimsuky)",
+      1
+    ],
+    [
+      "Carbanak -> Carbanak (gold FIN7)",
+      1
+    ],
+    [
+      "Tortoiseshell -> CURIUM (gold Cleaver)",
+      1
+    ]
+  ],
+  "unresolved_examples": [
+    [
+      "TA406 (gold Kimsuky)",
+      18
+    ],
+    [
+      "Beacon (gold Cobalt Strike)",
+      12
+    ],
+    [
+      "GRU (gold APT28)",
+      11
+    ],
+    [
+      "Origin Logger (gold Agent Tesla)",
+      10
+    ],
+    [
+      "Cobalt Strike beacon (gold Cobalt Strike)",
+      10
+    ],
+    [
+      "NetWiredRC (gold NETWIRE)",
+      6
+    ],
+    [
+      "The Trick (gold TrickBot)",
+      6
+    ],
+    [
+      "TA415 (gold APT41)",
+      5
+    ],
+    [
+      "NetwiredRC (gold NETWIRE)",
+      4
+    ],
+    [
+      "FSB (gold Dragonfly)",
+      4
+    ],
+    [
+      "Netwired (gold NETWIRE)",
+      3
+    ],
+    [
+      "TA3546 (gold FIN7)",
+      3
+    ],
+    [
+      "TEMP (gold Leviathan)",
+      2
+    ],
+    [
+      "aka Sodinokibi (gold REvil)",
+      1
+    ],
+    [
+      "ipconfig.exe (gold ipconfig)",
+      1
+    ],
+    [
+      "ping.exe (gold Ping)",
+      1
+    ],
+    [
+      "powershell.exe (gold ipconfig)",
+      1
+    ],
+    [
+      "psexec.exe (gold PsExec)",
+      1
+    ],
+    [
+      "certuit.exe (gold certutil)",
+      1
+    ],
+    [
+      "Red Team & adversary simulation Framework (gold Sliver)",
+      1
+    ],
+    [
+      "APT33/Elfin (gold APT33)",
+      1
+    ],
+    [
+      "justice-department-russian-hackers-notpetya-ukraine (gold NotPetya)",
+      1
+    ],
+    [
+      "Tesla Agent\u2019s (gold Agent Tesla)",
+      1
+    ],
+    [
+      "Python/PeppyRAT (gold Peppy)",
+      1
+    ],
+    [
+      "actors\u2014TA406 (gold Kimsuky)",
+      1
+    ]
+  ]
+}

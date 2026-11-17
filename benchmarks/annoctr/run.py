@@ -15,6 +15,12 @@ Scoring is per document, on sets, summed over documents (micro):
   that entity, or when both resolve to the same MITRE ATT&CK entry (aliases).
 * techniques: gold technique IDs from the linked ATT&CK URLs, scored exactly and at the parent level
   (T1566.001 counts as T1566).
+* grounding (with a model): how many items the model returned, how many the checks kept, and why the rest were
+  dropped (the share dropped as "ungrounded" is the measured hallucination rate).
+
+``--aliases`` scores alias resolution instead, with no model: every annotated mention (all splits) that the
+annotators linked to an ATT&CK group or software entry is resolved with Zarqa's ATT&CK data, and counted as right
+(same entry), wrong (another entry) or unresolved.
 """
 
 from __future__ import annotations
@@ -44,6 +50,45 @@ def gold(data: Path) -> dict[str, dict]:
             if m:
                 d["tech"].add(m.group(1) + (f".{m.group(2)}" if m.group(2) else ""))
     return dict(docs)
+
+
+def aliases(data: Path) -> dict:
+    import glob
+    from collections import Counter
+
+    from zarqa.intel import attack
+    pairs = []
+    for f in sorted(glob.glob(str(data / "linking_mitre_only" / "*.jsonl"))):
+        if "_w_" in f:
+            continue
+        for line in Path(f).read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            m = re.search(r"attack\.mitre\.org/(groups|software|campaigns)/([GSC]\d{4})", r["label_link"])
+            if m:
+                pairs.append((r["mention"], m.group(2), r["label_title"], m.group(1)))
+    out = Counter()
+    wrong, unresolved = Counter(), Counter()
+    by_kind = Counter()
+    for mention, gid, title, kind in pairs:
+        hit = attack.lookup(mention)
+        short = len(mention.split()) <= 4
+        key = "right" if hit and hit["id"] == gid else ("wrong" if hit else "unresolved")
+        out[key] += 1
+        out[f"{key}_short"] += short
+        by_kind[(kind, key)] += 1
+        if key == "wrong":
+            wrong[f"{mention} -> {hit['name']} (gold {title})"] += 1
+        elif key == "unresolved":
+            unresolved[f"{mention} (gold {title})"] += 1
+    n = len(pairs)
+    short = out["right_short"] + out["wrong_short"] + out["unresolved_short"]
+    return {"mentions": n, "right": out["right"], "wrong": out["wrong"], "unresolved": out["unresolved"],
+            "accuracy": round(out["right"] / n, 3) if n else 0,
+            "short_mentions": short, "accuracy_short": round(out["right_short"] / short, 3) if short else 0,
+            "by_kind": {f"{k}:{v}": c for (k, v), c in sorted(by_kind.items())},
+            "wrong_examples": wrong.most_common(15), "unresolved_examples": unresolved.most_common(25)}
 
 
 def norm(s: str) -> str:
@@ -90,8 +135,15 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0, help="only the first N documents")
     ap.add_argument("--start", type=int, default=0, help="skip the first N documents (to finish an interrupted run)")
     ap.add_argument("--out", default="")
+    ap.add_argument("--aliases", action="store_true", help="score alias resolution only (no model, all splits)")
     a = ap.parse_args()
     data = Path(a.data)
+    if a.aliases:
+        res = aliases(data)
+        print(json.dumps(res, indent=2))
+        if a.out:
+            Path(a.out).write_text(json.dumps(res, indent=2))
+        return 0
     g = gold(data)
     names = sorted(g)[a.start:][: a.limit or None]
     home = Path(tempfile.mkdtemp(prefix="zarqa-bench-"))
@@ -115,6 +167,9 @@ def main() -> int:
     st = store_for(c)
     tot = {"names": [0, 0, 0], "tech": [0, 0, 0], "tech_parent": [0, 0, 0]}
     per_doc, t0, model_errors, calls = [], time.monotonic(), 0, 0
+    from collections import Counter
+    returned = kept = 0
+    drop_reasons: Counter = Counter()
     for i, doc in enumerate(names, 1):
         text = (data / "text" / "test" / f"{doc}.txt").read_text(encoding="utf-8", errors="replace")
         d = st.add_document(source="annoctr", kind="text", text=text, title=doc)
@@ -122,6 +177,11 @@ def main() -> int:
         m = r.get("model") or {}
         calls += m.get("calls", 0)
         model_errors += bool(m.get("errors"))
+        model_drops = [x for x in r.get("dropped") or [] if x.get("why") != "rules"]
+        kept += m.get("items", 0) + m.get("relations", 0) + m.get("labels", 0)
+        returned += m.get("items", 0) + m.get("relations", 0) + m.get("labels", 0) + len(model_drops)
+        for x in model_drops:
+            drop_reasons[re.sub(r"\(.*\)|: .*| [0-9A-Z][^ ]*$", "", x["why"]).strip()[:60]] += 1
         ms = st.mentions(document_id=d["id"], limit=5000)
         pred_names = {x["display"] for x in ms if x["type"] in ("actor", "malware", "tool", "campaign")}
         pred_tech = {x["value"] for x in ms if x["type"] == "technique"}
@@ -135,6 +195,9 @@ def main() -> int:
     res = {"dataset": "AnnoCTR test", "documents": len(names), "config": {"model": a.model or "none (rules and ATT&CK names)"},
            "names": prf(*tot["names"]), "techniques_exact": prf(*tot["tech"]), "techniques_parent": prf(*tot["tech_parent"]),
            "model_calls": calls, "documents_with_model_errors": model_errors,
+           "grounding": {"returned": returned, "kept": kept, "dropped": returned - kept,
+                         "dropped_share": round((returned - kept) / returned, 3) if returned else None,
+                         "reasons": dict(drop_reasons.most_common())},
            "seconds": round(time.monotonic() - t0), "per_document": per_doc}
     print(json.dumps({k: v for k, v in res.items() if k != "per_document"}, indent=2))
     if a.out:

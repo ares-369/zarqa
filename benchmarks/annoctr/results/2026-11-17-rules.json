@@ -30,7 +30,14 @@
   },
   "model_calls": 0,
   "documents_with_model_errors": 0,
-  "seconds": 9,
+  "grounding": {
+    "returned": 0,
+    "kept": 0,
+    "dropped": 0,
+    "dropped_share": null,
+    "reasons": {}
+  },
+  "seconds": 8,
   "per_document": [
     {
       "document": "intel471_2021-07-14_how-cybercriminals-create-turbulence-for",

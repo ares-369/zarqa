@@ -18,6 +18,12 @@ All notable changes are listed here. The format follows
 - Lookups show each source's reliability and whether its document was flagged; an investigation that cites a
   flagged document is marked for review.
 
+- Benchmark: alias resolution on AnnoCTR (`run.py --aliases`) and, with a model, how many items the checks drop
+  and why (the measured hallucination rate).
+- Loose name matching for ATT&CK groups and software: spaces, hyphens and one generic suffix (loader, RAT, group,
+  ...) are ignored when exactly one entry fits ("JSSLoader", "NetwireRAT", "Winnti"). Alias resolution on AnnoCTR:
+  73.9% to 87.3%.
+
 ### Changed
 
 - The injection scan also catches "you are now a helpful assistant..." (an adjective before the AI word).

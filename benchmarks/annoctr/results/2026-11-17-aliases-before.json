@@ -1,0 +1,141 @@
+{
+  "mentions": 1351,
+  "right": 998,
+  "wrong": 45,
+  "unresolved": 308,
+  "accuracy": 0.739,
+  "short_mentions": 1345,
+  "accuracy_short": 0.742,
+  "by_kind": {
+    "groups:right": 253,
+    "groups:unresolved": 128,
+    "groups:wrong": 31,
+    "software:right": 745,
+    "software:unresolved": 180,
+    "software:wrong": 14
+  },
+  "wrong_examples": [
+    [
+      "TA456 -> CURIUM (gold Cleaver)",
+      28
+    ],
+    [
+      "TrickBot -> TrickBot (gold Tor)",
+      9
+    ],
+    [
+      "Netwire -> NETWIRE (gold Remcos)",
+      5
+    ],
+    [
+      "BARIUM -> APT41 (gold Winnti Group)",
+      2
+    ],
+    [
+      "Carbanak -> Carbanak (gold FIN7)",
+      1
+    ]
+  ],
+  "unresolved_examples": [
+    [
+      "Winnti (gold Winnti Group)",
+      43
+    ],
+    [
+      "JSSLoader (gold JSS Loader)",
+      34
+    ],
+    [
+      "NetwireRAT (gold NETWIRE)",
+      23
+    ],
+    [
+      "BazarLoader (gold Bazar)",
+      22
+    ],
+    [
+      "TA406 (gold Kimsuky)",
+      18
+    ],
+    [
+      "Beacon (gold Cobalt Strike)",
+      12
+    ],
+    [
+      "GRU (gold APT28)",
+      11
+    ],
+    [
+      "Quasar (gold QuasarRAT)",
+      11
+    ],
+    [
+      "Origin Logger (gold Agent Tesla)",
+      10
+    ],
+    [
+      "Cobalt Strike beacon (gold Cobalt Strike)",
+      10
+    ],
+    [
+      "Lazarus (gold Lazarus Group)",
+      8
+    ],
+    [
+      "APT 40 (gold Leviathan)",
+      8
+    ],
+    [
+      "Cobalt (gold Cobalt Group)",
+      7
+    ],
+    [
+      "NetWiredRC (gold NETWIRE)",
+      6
+    ],
+    [
+      "The Trick (gold TrickBot)",
+      6
+    ],
+    [
+      "TA415 (gold APT41)",
+      5
+    ],
+    [
+      "NetwiredRC (gold NETWIRE)",
+      4
+    ],
+    [
+      "FSB (gold Dragonfly)",
+      4
+    ],
+    [
+      "AgentTesla (gold Agent Tesla)",
+      3
+    ],
+    [
+      "Babuk ransomware (gold Babuk)",
+      3
+    ],
+    [
+      "Netwired (gold NETWIRE)",
+      3
+    ],
+    [
+      "TA3546 (gold FIN7)",
+      3
+    ],
+    [
+      "Gh0st (gold gh0st RAT)",
+      3
+    ],
+    [
+      "CobaltStrike (gold Cobalt Strike)",
+      2
+    ],
+    [
+      "Netwire RAT (gold NETWIRE)",
+      2
+    ]
+  ]
+}

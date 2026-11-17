@@ -102,6 +102,16 @@ def test_attack_lookup_and_retired_ids():
     assert attack.technique("T9999") is None
 
 
+def test_loose_alias_matching():
+    assert attack.lookup("JSSLoader")["name"] == "JSS Loader"
+    assert attack.lookup("NetwireRAT")["name"] == "NETWIRE"
+    assert attack.lookup("BazarLoader")["name"] == "Bazar"
+    assert attack.lookup("Winnti")["name"] == "Winnti Group"
+    assert attack.lookup("Quasar")["name"] == "QuasarRAT"
+    assert attack.lookup("Totally Unknown Loader") is None
+    assert attack.lookup("RAT") is None and attack.lookup("Group") is None     # too short once the suffix goes
+
+
 def test_find_names_skips_common_words():
     hits = attack.find_names("Sofacy and the Lazarus Group were active; a group of power users met.")
     assert {h["id"] for h in hits} == {"G0007", "G0032"}

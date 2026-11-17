@@ -55,9 +55,38 @@ def _names() -> dict[str, tuple[str, str]]:
     return out
 
 
+_SUFFIXES = ("loader", "rat", "stealer", "ransomware", "malware", "backdoor", "botnet", "trojan", "group", "team",
+             "gang", "apt", "family")
+
+
+def _loose(name: str) -> str:
+    """Spaces and hyphens removed, one generic suffix dropped: "JSS Loader", "JSSLoader" and "jss-loader" -> "jss"."""
+    n = norm(name).replace(" ", "")
+    for suf in _SUFFIXES:
+        if n.endswith(suf) and len(n) - len(suf) >= 4:
+            return n[: -len(suf)]
+    return n
+
+
+@lru_cache(maxsize=1)
+def _loose_names() -> dict[str, tuple[str, str]]:
+    """Loose key -> entry, only for keys that point at exactly one ATT&CK entry (ambiguous keys are dropped)."""
+    seen: dict[str, set[tuple[str, str]]] = {}
+    d = data()
+    for table in ("groups", "campaigns", "software"):
+        for eid, v in d[table].items():
+            kind = v.get("k") if table == "software" else KINDS[table]
+            for n in [v["n"], *v.get("a", [])]:
+                key = _loose(n)
+                if len(key) >= 4:
+                    seen.setdefault(key, set()).add((kind, eid))
+    return {k: next(iter(v)) for k, v in seen.items() if len(v) == 1}
+
+
 def lookup(name: str) -> dict | None:
-    """Resolve a group, software or campaign name or alias: ``{kind, id, name, aliases}``."""
-    hit = _names().get(norm(name))
+    """Resolve a group, software or campaign name or alias: ``{kind, id, name, aliases}``. Exact (normalised)
+    first; then loose (spaces and one generic suffix ignored), only when that points at a single entry."""
+    hit = _names().get(norm(name)) or _loose_names().get(_loose(name))
     if not hit:
         return None
     kind, eid = hit
