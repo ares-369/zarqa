@@ -333,6 +333,10 @@ def cmd_intel(a) -> int:
         for i in ids:
             r = score_document(cfg, st, i, llm=llm)
             print(f"document {i}: {r['score'] if r['score'] is not None else '-'}  {'; '.join(r['reasons'])[:200]}")
+        from .intel.credibility import refresh
+        with st._conn() as c:
+            all_ids = [r[0] for r in c.execute("SELECT id FROM entities").fetchall()]
+        print(f"ratings and confidence recomputed for {refresh(st, all_ids)} entities")
         return 0
     if a.cmd == "stats":
         import json as _json
@@ -434,7 +438,8 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_br2 = sub.add_parser("brand", help="lookalike domains of your own: list findings, or run the watch now")
     p_br2.add_argument("action", nargs="?", choices=["list", "run"], default="list")
     p_br2.add_argument("--limit", type=int, default=50)
-    p_rs = sub.add_parser("rescore", help="score documents again against the organization profile and requirements")
+    p_rs = sub.add_parser("rescore", help="score documents again (relevance) and recompute every entity's rating "
+                                          "and confidence")
     p_rs.add_argument("ids", nargs="*")
     p_rs.add_argument("--limit", type=int, default=200)
     p_enr = sub.add_parser("enrich", help="look a stored value (or entity id) up with the configured enrichers")
