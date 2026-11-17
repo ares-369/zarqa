@@ -5,6 +5,10 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-beta] — 2026-11-17
+
+First release.
+
 ### Added
 
 - Foundation: configuration (`config.yaml` + `.env`), home folder (`ZARQA_HOME` or `~/.zarqa`),
@@ -71,7 +75,7 @@ All notable changes are listed here. The format follows
 
 - Extraction benchmark on AnnoCTR (`benchmarks/annoctr/run.py`, results in docs/benchmarks.md).
 
-### Fixed
+### Fixed (found while building and testing this release)
 
 - An internal IPv4 address at the end of a sentence was not masked for cloud models, not refused by the web
   leak guard and missed by the decoder (the indicator rules were fixed earlier).

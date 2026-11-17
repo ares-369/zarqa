@@ -14,6 +14,6 @@ A phase is marked done only when that is true.
 | 7 | Investigations: question in, cited answer out, checked against the evidence; says when the data is not enough | done |
 | 8 | Brand monitoring: lookalike generation, DNS, certificate logs, registration age, page checks, scoring and tracking | done |
 | 9 | Sharing: STIX 2.1 and MISP-format exports, read-only TAXII 2.1 server, pushes through sharing connectors, Zarqa as an MCP server | done |
-| 10 | Reports, daily brief, demo mode, benchmark against a public labelled dataset (done, partly: see benchmarks.md); first release | in progress |
+| 10 | Reports, daily brief, demo mode, benchmark against a public labelled dataset (see benchmarks.md), first release (0.1.0-beta) | done |
 
 Results of the benchmark will be published with their misses, as in the sibling projects.

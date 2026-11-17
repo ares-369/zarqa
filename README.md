@@ -5,6 +5,8 @@
 [![CI](https://github.com/ares-369/zarqa/actions/workflows/ci.yml/badge.svg)](https://github.com/ares-369/zarqa/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.10–3.12](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](pyproject.toml)
+[![PyPI](https://img.shields.io/pypi/v/zarqa.svg)](https://pypi.org/project/zarqa/)
+[![Release](https://img.shields.io/github/v/release/ares-369/zarqa?include_prereleases&sort=semver)](https://github.com/ares-369/zarqa/releases)
 
 **An open-source, AI-powered threat intelligence tool.** Zarqa collects intel from the internet and
 from the threat intel platforms you already use, turns it into structured, sourced intel, ranks it by
@@ -15,7 +17,7 @@ can send what it finds back to them in standard formats.
 
 Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days before it arrived.
 
-> **Early development, solo-maintained.** Collection, extraction, enrichment, relevance ranking,
+> **Beta, solo-maintained.** Collection, extraction, enrichment, relevance ranking,
 > investigations, brand watch, sharing, reports and the connector layer work and are tested. First
 > benchmark: [benchmarks](docs/benchmarks.md) (without a model it is precise but misses most names and
 > techniques; a small local model adds little). See the
@@ -67,7 +69,7 @@ From the offline demo (fictional data).
 
 ## Planned
 
-A benchmark with a stronger model, and the first release.
+A benchmark with a stronger model; registrant comparison in the brand watch; separate worker processes.
 
 ## Try it
 
@@ -75,7 +77,7 @@ Offline, with fictional sample data and no model: `zarqa demo --run`, then
 `ZARQA_HOME=~/.zarqa-demo zarqa serve` ([demo](docs/demo.md)). Or `docker compose --profile demo up demo`.
 
 ```bash
-pip install -e '.[dev]'          # from a checkout; PyPI comes with the first release
+pipx install zarqa               # or: pip install zarqa   (extras: zarqa[all])
 zarqa init                       # config.yaml, .env (mode 600) and data/ in the home folder
 zarqa doctor                     # checks the setup and says what to fix
 zarqa serve                      # http://127.0.0.1:8621
