@@ -27,7 +27,7 @@ _KEYWORDS = re.compile(r"(?i)\b(iex|invoke-expression|downloadstring|downloadfil
                        r"cscript|curl|wget|bash\s+-c|/dev/tcp|nc\s+-e|powershell|cmd\s*/c|eval|atob|"
                        r"add-mppreference|set-mppreference|-exclusionpath|amsi|virtualalloc|reflection\.assembly)\b")
 _URL = re.compile(r"\bhttps?://[^\s'\"<>)]+", re.I)
-_IP = re.compile(r"(?<![\d.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?![\d.])")
+_IP = re.compile(r"(?<![\d.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?!\d|\.\d)")
 
 
 def _printable(s: str, ratio: float = 0.85) -> bool:

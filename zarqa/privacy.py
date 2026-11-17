@@ -31,7 +31,7 @@ CLOUD = ("anthropic", "gemini", "openai", "azure_openai", "openai_compatible", "
 DEFAULT_TYPES = ("email", "ipv4", "ipv6", "user")
 
 _EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,24}\b")
-_IPV4 = re.compile(r"(?<![\d.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?![\d.])")
+_IPV4 = re.compile(r"(?<![\d.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?!\d|\.\d)")
 _IPV6 = re.compile(r"(?<![:\w.])(?=[0-9a-fA-F:]*:[0-9a-fA-F]*:)[0-9a-fA-F:]{2,39}(?![:\w])")
 # "user": "alice", user=alice, UserName: alice, account_name 'bob'
 _USER = re.compile(r"""(?ix)(\b(?:user(?:_?name)?|account(?:_?name)?|subject_?user(?:_?name)?|target_?user(?:_?name)?|

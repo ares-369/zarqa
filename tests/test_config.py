@@ -53,3 +53,14 @@ def test_privacy_keeps_public_ips_by_default():
     m = PrivacyLLM(object(), {}).masker
     out = m.mask("callback to 8.8.8.8 from 10.1.2.3 by alice@example.org")
     assert "8.8.8.8" in out and "10.1.2.3" not in out and "alice@example.org" not in out
+
+
+def test_ip_at_the_end_of_a_sentence_is_masked_and_refused():
+    from zarqa.bridges.server import ToolInputError
+    from zarqa.bridges.web import leak_check
+    from zarqa.decode import _IP
+    from zarqa.privacy import Masker
+    assert "10.1.2.3" not in Masker().mask("login from 10.1.2.3. Then quiet.")
+    with pytest.raises(ToolInputError):
+        leak_check("scan of 10.1.2.3.", [])
+    assert _IP.findall("beacon to 203.0.113.9.") == ["203.0.113.9"]

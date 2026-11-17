@@ -73,6 +73,8 @@ All notable changes are listed here. The format follows
 
 ### Fixed
 
+- An internal IPv4 address at the end of a sentence was not masked for cloud models, not refused by the web
+  leak guard and missed by the decoder (the indicator rules were fixed earlier).
 - A model's name was dropped when it added a generic word the document did not use ("Groove Gang" for
   "GROOVE"); found in the benchmark.
 - Investigation checks compared a claim's refanged indicator with defanged evidence text and set true claims
