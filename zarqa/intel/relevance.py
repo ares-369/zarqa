@@ -58,11 +58,53 @@ def profile(cfg) -> dict:
 
 
 def validate(raw: dict) -> None:
+    names = []
     for r in raw.get("requirements") or []:
         if not isinstance(r, dict) or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,39}", str(r.get("name", ""))):
             raise ValueError("requirements: each needs a name (lowercase letters, digits, _ or -), a question and terms")
         if not _list(r.get("terms")):
             raise ValueError(f"requirement {r['name']}: list at least one term")
+        names.append(r["name"])
+    dupes = sorted({n for n in names if names.count(n) > 1})
+    if dupes:
+        raise ValueError(f"requirements: duplicate names {dupes}")
+    org = raw.get("organization") or {}
+    if not isinstance(org, dict):
+        return                          # the config loader reports a non-mapping organization with its own message
+    for k in ("products", "brands", "domains", "sectors", "regions", "notes"):
+        v = org.get(k)
+        if v is not None and not isinstance(v, (list, str)):
+            raise ValueError(f"organization.{k}: a list of names")
+
+
+ORG_FIELDS = ("name", "sectors", "regions", "products", "brands", "domains", "notes")
+
+
+def clean_profile(body: dict) -> tuple[dict, list[dict]]:
+    """An organization profile and requirements from the UI or API, tidied: lists of short unique strings."""
+    def lst(v, n=200, size=120):
+        items = v.splitlines() if isinstance(v, str) else (v or [])
+        out = []
+        for x in items:
+            for part in (str(x).split(",") if not isinstance(v, str) else [str(x)]):
+                t = part.strip()[:size]
+                if t and t.lower() not in {o.lower() for o in out}:
+                    out.append(t)
+        return out[:n]
+    org_in = body.get("organization") or {}
+    org = {"name": str(org_in.get("name", "")).strip()[:120]}
+    for k in ORG_FIELDS[1:]:
+        org[k] = lst(org_in.get(k), size=300 if k == "notes" else 120)
+    org["domains"] = [d.lower().strip(".") for d in org["domains"]]
+    reqs = []
+    for r in body.get("requirements") or []:
+        if not isinstance(r, dict):
+            continue
+        name = re.sub(r"[^a-z0-9_-]+", "-", str(r.get("name", "")).strip().lower()).strip("-")[:40]
+        terms = lst(r.get("terms"), n=50, size=80)
+        if name or terms:
+            reqs.append({"name": name, "question": str(r.get("question", "")).strip()[:300], "terms": terms})
+    return {k: v for k, v in org.items() if v}, reqs
 
 
 def has_profile(p: dict) -> bool:

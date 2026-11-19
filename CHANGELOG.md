@@ -7,6 +7,10 @@ All notable changes are listed here. The format follows
 
 ### Added
 
+- Profile page: describe your organization (sectors, regions, products, brands, domains, notes) and your
+  intelligence requirements in the UI; saved to config.yaml, every report scored again. With a profile set, the Intel
+  page and Overview show only intel relevant to you by default ("highly relevant" and "everything" one click away).
+
 - Built-in sources: about 30 well-known public feeds and lists (government advisories, research teams, security
   news, CISA known-exploited CVEs, abuse.ch Feodo Tracker, Emerging Threats compromised hosts), on by default with a
   reliability letter each. `default_sources: {enabled, disable}`, `zarqa sources enable|disable NAME|--all`, switches

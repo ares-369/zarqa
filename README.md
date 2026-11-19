@@ -39,7 +39,8 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
   and ATT&CK names work with no model at all.
 - **Aliases resolved.** "Fancy Bear", "Sednit" and "Forest Blizzard" are one actor (APT28), from MITRE
   ATT&CK data shipped with Zarqa.
-- **Ranked for you.** Describe your organization and your intelligence requirements; every report gets a
+- **Ranked for you, and filtered to you.** Describe your organization and your intelligence requirements on the
+  Profile page; the Intel page then shows only what is relevant to you by default. Every report gets a
   0-100 score with the reasons (your products named, your sector targeted, known-exploited CVEs, a
   requirement answered). ([relevance](docs/relevance.md))
 - **Ask, and get a cited answer.** "What do we know about this IP?" The analyst model searches the store and

@@ -46,6 +46,30 @@ def enrich(p: dict, ctl, jobs) -> dict:
     return {"entity_id": p["entity_id"], "results": r}
 
 
+def rescore(p: dict, ctl, jobs) -> dict:
+    """Score every collected report again (after the profile changed). Rules only unless relevance.model."""
+    from .intel.relevance import score_document
+    from .intel.store import store_for
+    cfg = _cfg()
+    st = store_for(cfg)
+    llm = None
+    if ((cfg.raw or {}).get("relevance") or {}).get("model"):
+        from .llm import privacy_llm
+        llm = privacy_llm(cfg)
+    n, offset = 0, 0
+    while True:
+        docs = st.documents(status="extracted", limit=500, offset=offset)
+        if not docs:
+            break
+        for d in docs:
+            if ctl is not None and not ctl.checkpoint():
+                return {"scored": n, "stopped": True}
+            score_document(cfg, st, d["id"], llm=llm)
+            n += 1
+        offset += 500
+    return {"scored": n}
+
+
 def investigate(p: dict, ctl, jobs) -> dict:
     from .investigate.service import run_investigation
     r = run_investigation(_cfg(), int(p["investigation_id"]), actor=p.get("actor", ""),
@@ -61,7 +85,7 @@ def brand(p: dict, ctl, jobs) -> dict:
     return {k: r[k] for k in ("candidates", "resolving", "new")} | {"errors": r["errors"][:5]}
 
 
-TASKS: dict[str, Any] = {"brand": brand, "ping": ping, "pull": pull, "process": process, "enrich": enrich, "investigate": investigate}
+TASKS: dict[str, Any] = {"rescore": rescore, "brand": brand, "ping": ping, "pull": pull, "process": process, "enrich": enrich, "investigate": investigate}
 
 
 def run_task(name: str, params: dict, ctl=None, *, jobs=None) -> dict:

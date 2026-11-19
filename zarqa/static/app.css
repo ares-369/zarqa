@@ -67,3 +67,4 @@ table.cards,.cards tbody,.cards tr,.cards td{display:block;width:100%}.cards the
 .demo-banner{background:#2f2a10;color:var(--amber);padding:.45rem 1rem;border-bottom:1px solid var(--amber);display:flex;gap:.4rem;align-items:center}
 .rating{font-family:ui-monospace,monospace;font-weight:600}
 button.tg-on{color:var(--green);border-color:var(--green)}button.tg-off{color:var(--grey)}
+label.field{display:flex;flex-direction:column;gap:.25rem;margin:.6rem 0}textarea.short{min-height:4.2rem}.req{border-left:2px solid var(--line);padding:.2rem 0 .2rem .7rem;margin:.5rem 0}.req input.grow{width:100%}

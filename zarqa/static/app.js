@@ -62,7 +62,7 @@ function route() {
   const navTab = { doc: "intel", entity: "entities", add: "intel", inv: "ask" }[tab] || tab;
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("on", a.dataset.tab === navTab));
   const pages = { overview, intel, doc: () => docPage(arg), entities, entity: () => entityPage(arg), add, sources,
-    ask, inv: () => invPage(arg), brand,
+    ask, inv: () => invPage(arg), brand, profile: profilePage,
     connectors, jobs, settings };
   const token = ++navToken;
   const view = h("div");
@@ -98,8 +98,11 @@ async function overview() {
   main.append(section("Brief", "file-chart-outline", h("p", { class: "muted small" }, "What came in over a period, most relevant to you first, with new names, indicators, known-exploited CVEs, lookalikes and investigations."),
     h("div", { class: "row" }, days, h("button", { class: "ghost", onclick: () => window.open(`/api/brief?format=html&days=${days.value}`, "_blank", "noopener") }, icon("open-in-new"), "Open"),
       h("button", { class: "ghost", onclick: () => { location.href = `/api/brief?format=md&download=1&days=${days.value}`; } }, icon("download"), "Markdown"))));
-  const recent = await api("/api/documents?limit=8");
-  main.append(section("Latest documents", "newspaper-variant-outline", recent.length ? docTable(recent)
+  const prof = await api("/api/profile");
+  const recent = await api(prof.set ? "/api/documents?limit=8&min_relevance=30" : "/api/documents?limit=8");
+  main.append(section(prof.set ? "Latest intel relevant to you" : "Latest documents", "newspaper-variant-outline",
+    prof.set ? null : h("p", { class: "small warn" }, icon("alert-outline"), " No organization profile yet, so nothing is ranked. ", h("a", { href: "#profile" }, "Describe your organization")),
+    recent.length ? docTable(recent)
     : h("p", { class: "muted" }, "Nothing collected yet. Add sources in config.yaml (sources:), or add a report.", " ",
       h("a", { href: "#add" }, "Add a report"))));
   main.append(section("Models", "brain", h("table", {}, h("tbody", {}, Object.entries(s.roles).map(([r, c]) =>
@@ -139,17 +142,22 @@ async function intel() {
   const q = h("input", { class: "grow", placeholder: "Search titles and text" });
   const status = h("select", {}, ["", "new", "extracted", "error"].map((x) => h("option", { value: x }, x || "any status")));
   const order = h("select", {}, [["newest", "newest first"], ["relevance", "most relevant first"]].map(([v, l]) => h("option", { value: v }, l)));
+  const prof = await api("/api/profile");
+  const show = h("select", { title: "relevance to your organization (Profile)" },
+    [["30", "relevant to us"], ["70", "highly relevant"], ["", "everything"]].map(([v, l]) => h("option", { value: v, selected: prof.set ? v === "30" : v === "" }, l)));
   const box = h("div");
   let offset = 0;
   const load = async () => {
-    const rows = await api(`/api/documents?limit=50&offset=${offset}&q=${encodeURIComponent(q.value)}&status=${status.value}&order=${order.value}`);
+    const rows = await api(`/api/documents?limit=50&offset=${offset}&q=${encodeURIComponent(q.value)}&status=${status.value}&order=${order.value}` + (show.value ? `&min_relevance=${show.value}` : ""));
     fill(box, rows.length ? docTable(rows) : h("p", { class: "muted" }, "No documents."),
       h("div", { class: "row" }, offset > 0 && h("button", { class: "ghost", onclick: () => { offset = Math.max(0, offset - 50); load(); } }, icon("chevron-left"), "Newer"),
         rows.length === 50 && h("button", { class: "ghost", onclick: () => { offset += 50; load(); } }, "Older", icon("chevron-right"))));
   };
   q.addEventListener("keydown", (e) => { if (e.key === "Enter") { offset = 0; load(); } });
-  [status, order].forEach((x) => x.addEventListener("change", () => { offset = 0; load(); }));
-  main.append(section("Intel", "newspaper-variant-outline", h("div", { class: "row" }, q, status, order,
+  [status, order, show].forEach((x) => x.addEventListener("change", () => { offset = 0; load(); }));
+  main.append(section("Intel", "newspaper-variant-outline",
+    prof.set ? null : h("p", { class: "small warn" }, icon("alert-outline"), " Showing everything: no organization profile yet. ", h("a", { href: "#profile" }, "Describe your organization"), " to see only what matters to you."),
+    h("div", { class: "row" }, show, q, status, order,
     h("a", { href: "#add", "data-need": "op" }, h("button", {}, icon("plus"), "Add"))), box));
   await load();
 }
@@ -335,6 +343,49 @@ async function brand() {
   main.append(section("Brand watch", "shield-search", h("p", { class: "muted small" }, "Lookalike domains of your own: generated, resolved, checked (registration date, the page) and scored. Status is yours to set."),
     h("div", { class: "row" }, st, h("button", { "data-need": "op", onclick: async () => { const r = await post("/api/brand/run"); toast(`Watch started (job ${r.job_id}); it can take a few minutes.`); } }, icon("play"), "Run now")), box));
   await load();
+}
+
+// ---------------- Profile: who you are, what you need to know ----------------
+async function profilePage() {
+  const p = await api("/api/profile");
+  const area = (val, ph) => h("textarea", { class: "short", placeholder: ph, value: (val || []).join("\n") });
+  const name = h("input", { class: "grow", placeholder: "Organization name (optional)", value: p.name || "" });
+  const f = {
+    sectors: area(p.sectors, "One per line, e.g. energy"), regions: area(p.regions, "e.g. Europe"),
+    products: area(p.products, "What you run, one per line: e.g. your VPN appliance, mail platform, hypervisor"),
+    brands: area(p.brands, "Your brand names, for the brand watch and relevance"),
+    domains: area(p.domains, "Your own domains, e.g. example.com (never sent to public lookup services)"),
+    notes: area(p.notes, "Anything else worth knowing, e.g. staff work remotely over a VPN"),
+  };
+  const label = (t, hint, el) => h("label", { class: "field" }, h("b", {}, t), hint ? h("span", { class: "muted small" }, " " + hint) : null, el);
+  const reqBox = h("div");
+  const reqRows = [];
+  const addReq = (r) => {
+    const row = { name: h("input", { placeholder: "short-name", value: r.name || "" }),
+      question: h("input", { class: "grow", placeholder: "The question, e.g. Is our VPN appliance being exploited?", value: r.question || "" }),
+      terms: h("input", { class: "grow", placeholder: "Words that answer it, comma separated", value: (r.terms || []).join(", ") }) };
+    row.el = h("div", { class: "req" }, h("div", { class: "row" }, row.name, row.question,
+      h("button", { class: "ghost", title: "Remove", onclick: () => { row.el.remove(); reqRows.splice(reqRows.indexOf(row), 1); } }, icon("close"))), row.terms);
+    reqRows.push(row); reqBox.append(row.el);
+  };
+  (p.requirements || []).forEach(addReq);
+  const lines = (el) => el.value.split("\n").map((x) => x.trim()).filter(Boolean);
+  main.append(section("Your organization", "domain",
+    h("p", { class: "muted small" }, "Zarqa ranks every report against this (Intel shows what is relevant to you first) and the brand watch uses your domains and brands. Saved to config.yaml; every report collected so far is scored again. Names here are masked before prompts go to a cloud model only if they are also under privacy.terms."),
+    label("Name", "", name), label("Sectors", "", f.sectors), label("Regions", "", f.regions), label("Products and technologies", "the strongest signal", f.products),
+    label("Brands", "", f.brands), label("Domains", "", f.domains), label("Notes", "", f.notes)));
+  main.append(section("What you need to know", "help-circle-outline",
+    h("p", { class: "muted small" }, "Intelligence requirements: questions your team needs answered. A report that contains one of the words is tagged with the requirement and ranks higher."),
+    reqBox, h("button", { class: "ghost", onclick: () => addReq({}) }, icon("plus"), "Add a requirement")));
+  main.append(h("div", { class: "row" }, h("button", { "data-need": "admin", onclick: async (e) => {
+    e.target.disabled = true;
+    try {
+      const body = { organization: { name: name.value, ...Object.fromEntries(Object.entries(f).map(([k, el]) => [k, lines(el)])) },
+        requirements: reqRows.map((r) => ({ name: r.name.value, question: r.question.value, terms: r.terms.value.split(",").map((x) => x.trim()).filter(Boolean) })) };
+      const r = await post("/api/settings/profile", body);
+      toast(r.set ? "Saved. Scoring every report again in the background." : "Saved (empty profile: nothing will be ranked).");
+    } finally { e.target.disabled = false; }
+  } }, icon("content-save"), "Save profile"), h("span", { class: "muted small" }, "Admins only.")));
 }
 
 // ---------------- Sources ----------------

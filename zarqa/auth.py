@@ -32,7 +32,7 @@ _LOGIN_MAX_ATTEMPTS = 10
 _LOGIN_WINDOW_SEC = 60.0
 _VALID_ROLES = {"viewer", "operator", "admin"}
 _ADMIN_ONLY_PATHS = {"/api/config", "/api/config/preview", "/api/settings/llm", "/api/settings/llm/test", "/api/retention",
-                     "/api/settings/connectors", "/api/settings/sources"}
+                     "/api/settings/connectors", "/api/settings/sources", "/api/settings/profile"}
 _ADMIN_ONLY_PREFIXES = ("/api/connectors/",)
 # Reads that are NOT safe for every role (full database export) are admin-only.
 _ADMIN_ONLY_READ_PATHS = {"/api/backup/download", "/api/audit", "/api/audit/verify", "/api/doctor"}

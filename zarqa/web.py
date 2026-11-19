@@ -256,6 +256,19 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
         p = profile(get_config())
         return jsonify({**p, "set": has_profile(p)})
 
+    @app.route("/api/settings/profile", methods=["POST"])
+    def settings_profile():
+        from .config import set_profile
+        from .intel.relevance import clean_profile, has_profile, profile
+        org, reqs = clean_profile(request.get_json(silent=True) or {})
+        try:
+            c = set_profile(org, reqs)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        jid = jobs.submit("rescore", {"rescore": "all"}, None, task="rescore", params={})
+        p = profile(c)
+        return jsonify({**p, "set": has_profile(p), "job_id": jid})
+
     @app.route("/api/entities")
     def entities():
         return jsonify(kstore().entities(etype=request.args.get("type") or None, q=request.args.get("q", "")[:200],

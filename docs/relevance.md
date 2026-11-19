@@ -6,6 +6,13 @@ requirements, because a score with nothing behind it would mislead.
 
 ## Describe your organization
 
+On the **Profile** page (admins), or in `config.yaml`. Saving from the Profile page writes `config.yaml` (the old one
+is kept as `config.yaml.bak`) and scores every report collected so far again in the background.
+
+Once a profile exists, the Intel page and the Overview show **only intel relevant to you** (score 30 or more) by
+default; "highly relevant" (70 or more) and "everything" are one click away. The API filter is
+`/api/documents?min_relevance=30`.
+
 ```yaml
 organization:
   name: "Example Utility"

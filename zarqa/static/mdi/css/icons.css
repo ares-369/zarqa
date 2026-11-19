@@ -13,6 +13,7 @@
 .mdi-chevron-left::before{content:"\F0141"}
 .mdi-chevron-right::before{content:"\F0142"}
 .mdi-clipboard-text-clock::before{content:"\F18F9"}
+.mdi-close::before{content:"\F0156"}
 .mdi-close-circle-outline::before{content:"\F015A"}
 .mdi-code-json::before{content:"\F0626"}
 .mdi-cog::before{content:"\F0493"}
@@ -35,8 +36,10 @@
 .mdi-ghost::before{content:"\F02A0"}
 .mdi-graph-outline::before{content:"\F104A"}
 .mdi-hammer-wrench::before{content:"\F1323"}
+.mdi-help-circle-outline::before{content:"\F0625"}
 .mdi-history::before{content:"\F02DA"}
 .mdi-ip-network::before{content:"\F0A60"}
+.mdi-label::before{content:"\F0315"}
 .mdi-lan-check::before{content:"\F12AA"}
 .mdi-link-variant::before{content:"\F0339"}
 .mdi-login::before{content:"\F0342"}

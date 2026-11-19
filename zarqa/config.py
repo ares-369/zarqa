@@ -315,6 +315,20 @@ def set_user(username: str, *, password_hash: str | None = None, role: str = "op
     path.write_text(yaml.safe_dump(data, sort_keys=False))
 
 
+def set_profile(organization: dict, requirements: list[dict]) -> Config:
+    """Save the organization profile and intelligence requirements to config.yaml (backup first)."""
+    from .intel.relevance import validate
+    path = config_path()
+    old = path.read_text()
+    data = yaml.safe_load(old) or {}
+    data["organization"] = organization
+    data["requirements"] = requirements
+    validate(data)
+    path.with_name(path.name + ".bak").write_text(old)
+    path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
+    return get_config(reload=True)
+
+
 def set_default_sources(*, enabled: bool | None = None, disable: list[str] | None = None,
                         enable: list[str] | None = None) -> dict:
     """Turn built-in sources on or off in config.yaml (writes config.yaml.bak first). ``enabled`` switches all
