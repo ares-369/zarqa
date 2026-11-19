@@ -20,7 +20,7 @@ Named after Zarqa al-Yamama, who in Arabian legend could see an army coming days
 > **Beta, solo-maintained.** Collection, extraction, enrichment, relevance ranking,
 > investigations, brand watch, sharing, reports and the connector layer work and are tested. First
 > benchmark: [benchmarks](docs/benchmarks.md) (without a model it is precise but misses most names and
-> techniques; a small local model adds little). See the
+> techniques; a small local model doubles name recall at some cost in precision, and adds little to techniques). See the
 > [roadmap](docs/roadmap.md).
 
 ## What works today

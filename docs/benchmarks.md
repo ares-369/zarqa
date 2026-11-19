@@ -52,15 +52,38 @@ Rules and ATT&CK names only (no model), all 34 reports, 9 seconds:
 | Techniques, exact | 0.741 | 0.259 | 0.384 |
 | Techniques, parent | 0.943 | 0.301 | 0.457 |
 
-Rules plus a local 7B model (`qwen2.5-coder:7b` on Ollama, 4 GB GPU): the run stopped after **27 of 34 reports**
-at a two-hour limit (about 4-5 minutes per report). On those same 27 reports:
+Rules plus a local 7B model (`qwen2.5-coder:7b` on Ollama, 4 GB GPU), current code (after the alias, generic-word,
+relation and confidence changes): **26 of 34 reports** finished (the run was stopped after 17 + 9; about 2.7 minutes
+per report). On those 26:
 
 | | Rules only | Rules + 7B |
 |---|---|---|
-| Names precision | 1.000 (11 of 11) | 0.652 (15 of 23) |
-| Names recall | 0.128 (11 of 86) | 0.174 (15 of 86) |
-| Techniques (parent) precision | 0.952 | 0.937 |
-| Techniques (parent) recall | 0.262 | 0.262 |
+| Names precision | 1.000 (10 of 10) | 0.667 (24 of 36) |
+| Names recall | 0.130 (10 of 77) | 0.312 (24 of 77) |
+| Techniques (parent) precision | 0.935 | 0.857 |
+| Techniques (parent) recall | 0.153 | 0.158 |
+
+The model more than doubles name recall and costs a third of name precision; it adds almost nothing to techniques.
+
+**What the checks dropped** (first 17 reports, where the full record was kept): the model returned 208 items; 107
+were kept and 101 dropped (49%):
+
+| Reason | Items |
+|---|---|
+| a relation whose end was not kept, or an unknown relation type | 43 |
+| ungrounded: the quote is not in the report | 18 |
+| a name that is not in its own quote | 14 |
+| an indicator the rules did not find (models cannot add indicators) | 14 |
+| a CVE ID not in its quote | 4 |
+| unknown type or no name | 4 |
+| a relation quote that does not name both ends | 2 |
+| a technique without a valid ATT&CK ID | 2 |
+
+The **ungrounded** share, quotes that do not exist in the report, is 18 of 208 (8.7%): the closest measure here of
+how often the model makes something up. Those never reach the store.
+
+An earlier 7B run on older code (27 reports, before the alias and generic-word fixes) gave names precision 0.652 and
+recall 0.174; it is kept in `results/` but superseded by the table above.
 
 ### Alias resolution (no model)
 
@@ -82,7 +105,8 @@ annotated as Tor and 5 "Netwire" annotated as Remcos. What stays unresolved is m
 
 - **Without a model, Zarqa rarely says something wrong, and misses most of what is there.** It finds names and
   technique IDs only when they are written out (an ATT&CK group name or alias, `T1566`).
-- **The 7B model added little.** It found 4 more names, added 8 wrong ones, and no techniques. We looked at
+- **A small local model helps with names, not techniques.** On the current code it more than doubles name recall
+  (0.13 to 0.31) at a cost in precision (1.00 to 0.67), and leaves technique recall where the rules have it. We looked at
   its replies on two reports:
   - on a report with 12 annotated names, it returned only 3 items, two of them with empty quotes (dropped by the
     quote check) and one, "Groove Gang", whose quote said only "GROOVE". That one was dropped by a check that was
@@ -95,7 +119,7 @@ annotated as Tor and 5 "Netwire" annotated as Remcos. What stays unresolved is m
 
 ### Not measured yet
 
-- the remaining 7 reports with the 7B model (`--start 27`);
+- the last 8 reports with the 7B model on the current code (`--start 26`);
 - a stronger model on the same set;
 - indicator extraction (AnnoCTR does not annotate indicators);
 - relevance ranking, investigations and the brand watch, beyond the spot checks in their own pages.

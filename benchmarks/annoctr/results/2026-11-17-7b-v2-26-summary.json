@@ -1,0 +1,65 @@
+{
+ "documents": 26,
+ "matched_rules": 26,
+ "rules": {
+  "names": {
+   "tp": 10,
+   "fp": 0,
+   "fn": 67,
+   "precision": 1.0,
+   "recall": 0.13,
+   "f1": 0.23
+  },
+  "tp": {
+   "tp": 29,
+   "fp": 2,
+   "fn": 161,
+   "precision": 0.935,
+   "recall": 0.153,
+   "f1": 0.262
+  }
+ },
+ "7b": {
+  "names": {
+   "tp": 24,
+   "fp": 12,
+   "fn": 53,
+   "precision": 0.667,
+   "recall": 0.312,
+   "f1": 0.425
+  },
+  "tp": {
+   "tp": 30,
+   "fp": 5,
+   "fn": 160,
+   "precision": 0.857,
+   "recall": 0.158,
+   "f1": 0.267
+  }
+ },
+ "grounding_first17": {
+  "returned": 208,
+  "kept": 107,
+  "dropped": 101,
+  "dropped_share": 0.486,
+  "reasons": {
+   "relation type unknown or an end was not kept": 43,
+   "ungrounded": 18,
+   "name not in its quote": 14,
+   "indicator not found by the rules": 14,
+   "CVE ID not in its quote": 4,
+   "unknown type or no name": 4,
+   "quote does not name": 2,
+   "no valid ATT&CK ID": 2
+  }
+ },
+ "seconds_first17": 2789,
+ "techniques_exact_first17": {
+  "tp": 24,
+  "fp": 11,
+  "fn": 114,
+  "precision": 0.686,
+  "recall": 0.174,
+  "f1": 0.277
+ }
+}

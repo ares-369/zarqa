@@ -1,7 +1,8 @@
 # Known limitations
 
 - Extraction recall is low without a strong model: on AnnoCTR, rules alone find about 11% of annotated names and
-  26-30% of techniques; a local 7B model added little ([benchmarks](benchmarks.md)). Other features have spot
+  26-30% of techniques; a local 7B model doubled name recall (0.13 to 0.31, precision 1.00 to 0.67) and added little
+  to techniques ([benchmarks](benchmarks.md)). Other features have spot
   checks only.
 - The TAXII server pages by position: an object added between two page requests can shift a page. It is
   read-only and has no per-collection access control beyond the login or token.

@@ -1,0 +1,490 @@
+{
+  "dataset": "AnnoCTR test",
+  "documents": 17,
+  "config": {
+    "model": "ollama:qwen2.5-coder:7b"
+  },
+  "names": {
+    "tp": 16,
+    "fp": 8,
+    "fn": 36,
+    "precision": 0.667,
+    "recall": 0.308,
+    "f1": 0.421
+  },
+  "techniques_exact": {
+    "tp": 24,
+    "fp": 11,
+    "fn": 114,
+    "precision": 0.686,
+    "recall": 0.174,
+    "f1": 0.277
+  },
+  "techniques_parent": {
+    "tp": 30,
+    "fp": 3,
+    "fn": 108,
+    "precision": 0.909,
+    "recall": 0.217,
+    "f1": 0.351
+  },
+  "model_calls": 17,
+  "documents_with_model_errors": 0,
+  "grounding": {
+    "returned": 208,
+    "kept": 107,
+    "dropped": 101,
+    "dropped_share": 0.486,
+    "reasons": {
+      "relation type unknown or an end was not kept": 43,
+      "ungrounded": 18,
+      "name not in its quote": 14,
+      "indicator not found by the rules": 14,
+      "CVE ID not in its quote": 4,
+      "unknown type or no name": 4,
+      "quote does not name": 2,
+      "no valid ATT&CK ID": 2
+    }
+  },
+  "seconds": 2789,
+  "per_document": [
+    {
+      "document": "intel471_2021-07-14_how-cybercriminals-create-turbulence-for",
+      "pred_names": [
+        "Iranian-based actor",
+        "Mount Locker ransomware",
+        "NEFILIM ransomware"
+      ],
+      "gold_names": [
+        "MountLocker"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1021",
+        "T1190",
+        "T1195",
+        "T1486",
+        "T1491"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "intel471_2021-07-28_ransomware-as-a-service-fivehands",
+      "pred_names": [
+        "Bazar",
+        "Conti",
+        "FiveHands ransomware crew"
+      ],
+      "gold_names": [
+        "Babuk",
+        "Bazar",
+        "Conti",
+        "DarkSide",
+        "FIVEHANDS",
+        "Vidar"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1105",
+        "T1190",
+        "T1486",
+        "T1497",
+        "T1499",
+        "T1566"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "intel471_2021-08-18_information-stealer-ransomware-account-takeover",
+      "pred_names": [
+        "EtterSilent"
+      ],
+      "gold_names": [
+        "Cobalt Strike",
+        "EtterSilent",
+        "KPOT",
+        "REvil",
+        "TrickBot"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1105",
+        "T1189",
+        "T1486",
+        "T1496",
+        "T1499",
+        "T1566",
+        "T1631.001"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "intel471_2021-08-23_shinyhunters-data-breach-mitre-attack",
+      "pred_names": [
+        "ShinyHunters"
+      ],
+      "gold_names": [
+        "ShinyHunters"
+      ],
+      "pred_tech": [
+        "T1072",
+        "T1078.002",
+        "T1078.004",
+        "T1210",
+        "T1213",
+        "T1528",
+        "T1530",
+        "T1566",
+        "T1567",
+        "T1580",
+        "T1589.001",
+        "T1589.002",
+        "T1598"
+      ],
+      "gold_tech": [
+        "T1072",
+        "T1078",
+        "T1195",
+        "T1210",
+        "T1213",
+        "T1486",
+        "T1528",
+        "T1530",
+        "T1566",
+        "T1567",
+        "T1580",
+        "T1589",
+        "T1598"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "intel471_2021-09-09_groove-gang-ransomware-babuk-revil",
+      "pred_names": [
+        "Babuk gang",
+        "Groove Gang"
+      ],
+      "gold_names": [
+        "AdFind",
+        "Babuk",
+        "BabukGang",
+        "BlackMatter",
+        "Cobalt Strike",
+        "Conti",
+        "DarkSide",
+        "GandCrab",
+        "GrooveGang",
+        "PsExec",
+        "REvil",
+        "WinSCP"
+      ],
+      "pred_tech": [
+        "T1003",
+        "T1021",
+        "T1059",
+        "T1078.002",
+        "T1087",
+        "T1190",
+        "T1210",
+        "T1482",
+        "T1486",
+        "T1537",
+        "T1567",
+        "T1685"
+      ],
+      "gold_tech": [
+        "T1003",
+        "T1021",
+        "T1046",
+        "T1053",
+        "T1059",
+        "T1068",
+        "T1078",
+        "T1087",
+        "T1110",
+        "T1135",
+        "T1189",
+        "T1190",
+        "T1195",
+        "T1210",
+        "T1482",
+        "T1486",
+        "T1537",
+        "T1562",
+        "T1567",
+        "T1589"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "intel471_2021-09-30_public-sector-cybersecurity-threats-2021",
+      "pred_names": [
+        "Ransomware"
+      ],
+      "gold_names": [
+        "DarkSide",
+        "REvil"
+      ],
+      "pred_tech": [
+        "T1059.003"
+      ],
+      "gold_tech": [
+        "T1189",
+        "T1190",
+        "T1195",
+        "T1486",
+        "T1566"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "intel471_2021-11-02_shipping-companies-ransomware-credentials",
+      "pred_names": [
+        "Cobalt Strike",
+        "network access brokers"
+      ],
+      "gold_names": [
+        "Cobalt Strike",
+        "Conti",
+        "FIVEHANDS",
+        "NotPetya"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1021",
+        "T1190",
+        "T1212",
+        "T1486"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "intel471_2021-12-09_emotet-returns-december-2021",
+      "pred_names": [
+        "Emotet"
+      ],
+      "gold_names": [
+        "Emotet"
+      ],
+      "pred_tech": [
+        "T1057"
+      ],
+      "gold_tech": [
+        "T1001",
+        "T1027",
+        "T1041",
+        "T1055",
+        "T1057",
+        "T1059",
+        "T1110",
+        "T1114",
+        "T1189",
+        "T1218",
+        "T1566",
+        "T1573",
+        "T1606",
+        "T1623.001"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "lab52_2020-08-26_a-twisted-malware-infection-chain",
+      "pred_names": [
+        "Agent Tesla"
+      ],
+      "gold_names": [
+        "Agent Tesla",
+        "Lokibot"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1027",
+        "T1041",
+        "T1053",
+        "T1055",
+        "T1059",
+        "T1105",
+        "T1115",
+        "T1140",
+        "T1204",
+        "T1218",
+        "T1497",
+        "T1547",
+        "T1555",
+        "T1562",
+        "T1566",
+        "T1620"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "lab52_2021-04-29_chimera-apt-updates-on-its",
+      "pred_names": [
+        "Chimera",
+        "OwlProxy",
+        "VMProtect"
+      ],
+      "gold_names": [
+        "Chimera",
+        "OwlProxy"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1027",
+        "T1036",
+        "T1059",
+        "T1071",
+        "T1083",
+        "T1547"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "lab52_2021-05-17_literature-lover-targeting-colombia-with",
+      "pred_names": [
+        "APT-C-36"
+      ],
+      "gold_names": [
+        "APT-C-36",
+        "LimeRAT",
+        "njRAT"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1027",
+        "T1055",
+        "T1059",
+        "T1105",
+        "T1547",
+        "T1562",
+        "T1566"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "lab52_2021-07-05_quick-review-of-babuk-ransomware",
+      "pred_names": [
+        "Babuk"
+      ],
+      "gold_names": [
+        "Babuk"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1486"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "lab52_2022-01-10_tokyox-dll-side-loading-an",
+      "pred_names": [
+        "TokyoX"
+      ],
+      "gold_names": [
+        "PlugX",
+        "TokyoX",
+        "netsh"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1055",
+        "T1071",
+        "T1129",
+        "T1140",
+        "T1204",
+        "T1546",
+        "T1574",
+        "T1620"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "lab52_2022-01-12_tokyox-dll-side-loading-an",
+      "pred_names": [],
+      "gold_names": [
+        "HTTPBrowser",
+        "PlugX",
+        "TokyoX"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1005",
+        "T1033",
+        "T1041",
+        "T1049",
+        "T1059",
+        "T1070",
+        "T1082",
+        "T1083",
+        "T1105",
+        "T1574"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "lab52_2022-01-24_new-transparentribe-operation-targeting-india",
+      "pred_names": [
+        "New TransparenTribe Operation",
+        "Transparent Tribe"
+      ],
+      "gold_names": [
+        "Crimson",
+        "Peppy",
+        "Transparent Tribe"
+      ],
+      "pred_tech": [
+        "T1005",
+        "T1041",
+        "T1046",
+        "T1057",
+        "T1059.006",
+        "T1547.001",
+        "T1566.001",
+        "T1568"
+      ],
+      "gold_tech": [
+        "T1005",
+        "T1041",
+        "T1055",
+        "T1057",
+        "T1059",
+        "T1071",
+        "T1105",
+        "T1204",
+        "T1497",
+        "T1547",
+        "T1566",
+        "T1568"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "proofpoint_2021-10-28_ta575-uses-squid-game-lures",
+      "pred_names": [],
+      "gold_names": [
+        "Dridex",
+        "TA575"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1105",
+        "T1204",
+        "T1486",
+        "T1566"
+      ],
+      "model_errors": []
+    },
+    {
+      "document": "proofpoint_2021-11-18_triple-threat-north-korea-aligned",
+      "pred_names": [
+        "Kimsuky"
+      ],
+      "gold_names": [
+        "Kimsuky"
+      ],
+      "pred_tech": [],
+      "gold_tech": [],
+      "model_errors": []
+    }
+  ]
+}
