@@ -123,9 +123,11 @@ def observed_of(snippet: str, published: str) -> tuple[str, str]:
 def backfill(store: KnowledgeStore, *, only_missing: bool = True) -> int:
     """Set basis and observed on relations stored before they existed (or all, ``only_missing=False``)."""
     with store._conn() as c:
-        rows = c.execute("SELECT r.id, r.rel, r.method, r.snippet, d.published FROM relations r JOIN documents d "
-                         "ON d.id = r.document_id" + (" WHERE r.basis = '' OR r.basis IS NULL" if only_missing else "")
-                         ).fetchall()
+        sql = ("SELECT r.id, r.rel, r.method, r.snippet, d.published FROM relations r JOIN documents d "
+               "ON d.id = r.document_id WHERE r.basis = '' OR r.basis IS NULL" if only_missing else
+               "SELECT r.id, r.rel, r.method, r.snippet, d.published FROM relations r JOIN documents d "
+               "ON d.id = r.document_id")
+        rows = c.execute(sql).fetchall()
     if not rows:
         return 0
     with store._lock, store._conn() as c:

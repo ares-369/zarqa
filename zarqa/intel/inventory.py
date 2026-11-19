@@ -230,8 +230,9 @@ class Inventory:
         hosts = len({d[1].lower() for d in data})
         with self.store._lock, self.store._conn() as c:
             c.execute("DELETE FROM assets WHERE source=?", (source,))
-            c.executemany("INSERT INTO assets (source, host, name, product, version, vendor, seen) VALUES "
-                          "(?,?,?,?,?,?,?)", data)
+            for row in data:            # one by one: the PostgreSQL adapter has no executemany
+                c.execute("INSERT INTO assets (source, host, name, product, version, vendor, seen) VALUES "
+                          "(?,?,?,?,?,?,?)", row)
             c.execute("INSERT INTO inventory_state (source, imported, rows, hosts, error, tried) VALUES (?,?,?,?,'',?) "
                       "ON CONFLICT(source) DO UPDATE SET imported=excluded.imported, rows=excluded.rows, "
                       "hosts=excluded.hosts, error='', tried=excluded.tried", (source, ts, len(data), hosts, ts))
