@@ -5,6 +5,8 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0-beta] — 2026-11-20
+
 ### Added
 
 - Profile page: describe your organization (sectors, regions, products, brands, domains, notes) and your
