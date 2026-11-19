@@ -147,8 +147,13 @@ def _pool(dsn: str):
 
 def _use_schema(conn, dsn: str, schema: str) -> None:
     if (dsn, schema) not in _schemas_made:
-        conn.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
-        conn.commit()
+        try:
+            conn.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
+            conn.commit()
+        except Exception as exc:          # two connections creating it at once: PostgreSQL reports a duplicate
+            conn.rollback()
+            if "already exists" not in str(exc) and "duplicate key" not in str(exc):
+                raise
         _schemas_made.add((dsn, schema))
     conn.execute(f'SET search_path TO "{schema}"')
     conn.commit()

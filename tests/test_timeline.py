@@ -59,6 +59,7 @@ def test_relations_carry_basis_and_dates(store):
     assert t["events"][0]["date"] >= t["events"][-1]["date"]               # newest first
 
 
+@pytest.mark.skipif(bool(__import__("os").getenv("ZARQA_DB_URL")), reason="rewrites a SQLite file directly")
 def test_old_databases_are_backfilled(tmp_path):
     path = tmp_path / "old.sqlite"
     st = KnowledgeStore(path)
