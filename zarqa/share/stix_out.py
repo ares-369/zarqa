@@ -3,7 +3,8 @@
 Object ids are derived from the content (UUIDv5), so the same indicator or actor exported twice has the same
 id and a platform that imports both keeps one. Every object carries ``created_by_ref`` to the producer
 identity (``zarqa.instance_name``). Reports become ``report`` objects with the source URL and refer to what
-was found in them; relations become ``relationship`` objects with the sentence that states them.
+was found in them; relations become ``relationship`` objects with the sentence that states them, whether the source stated
+or the model inferred it (``x_zarqa_basis``) and when it happened by the source (``x_zarqa_observed``).
 
 An indicator is left out when every mention of it is labelled benign, victim or reference (by the model or a
 source); unlabelled ones are exported. Entities marked false positive, allow-listed or expired are left out.
@@ -157,7 +158,10 @@ def export(store: KnowledgeStore, *, producer_name: str = "Zarqa", entity_ids: l
         seen.add(r["id"])
         objs.append({"type": "relationship", "spec_version": "2.1", "id": sid("relationship", f"{a}|{r['rel']}|{b}"),
                      "created": EPOCH, "modified": EPOCH, "relationship_type": _REL.get(r["rel"], "related-to"),
-                     "source_ref": a, "target_ref": b, "description": r["snippet"][:1000], "created_by_ref": prod["id"]})
+                     "source_ref": a, "target_ref": b, "description": r["snippet"][:1000], "created_by_ref": prod["id"],
+                     **({"x_zarqa_basis": r["basis"]} if r.get("basis") else {}),
+                     **({"x_zarqa_observed": r["observed"], "x_zarqa_observed_from": r["observed_from"]}
+                        if r.get("observed") else {})})
     for d in docs:
         refs = [o["id"] for o in objs if o["type"] not in ("identity",) or o["id"] != prod["id"]][1:] or [prod["id"]]
         rep = {"type": "report", "spec_version": "2.1", "id": sid("report", f"doc:{d['id']}:{d['title']}"),

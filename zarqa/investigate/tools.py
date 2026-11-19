@@ -47,8 +47,9 @@ def _brief_mentions(store: KnowledgeStore, eid: int, n: int = 8) -> list[dict]:
 
 
 def _relations(store: KnowledgeStore, eid: int, n: int = 15) -> list[str]:
-    return [f"{r['src_display']} {r['rel'].replace('_', ' ')} {r['dst_display']} (document {r['document_id']}: "
-            f"\"{r['snippet'][:160]}\")" for r in store.relations(entity_id=eid, limit=n)]
+    return [f"{r['src_display']} {r['rel'].replace('_', ' ')} {r['dst_display']} ({r.get('basis') or 'unrated'}"
+            f"{', ' + r['observed'] + (' by the text' if r.get('observed_from') == 'text' else ' report date') if r.get('observed') else ''}"
+            f"; document {r['document_id']}: \"{r['snippet'][:160]}\")" for r in store.relations(entity_id=eid, limit=n)]
 
 
 def call(name: str, args: dict[str, Any], *, cfg, store: KnowledgeStore, actor: str = "") -> Any:

@@ -46,6 +46,26 @@ data, and the model is told never to follow instructions in it. Prompts to cloud
 If the model fails (not reachable, bad reply), the rules and dictionary results stay and the document is
 marked `rules (model failed)`.
 
+## Relations: stated or inferred, and when
+
+Every kept relation records:
+
+| field | meaning |
+|---|---|
+| `basis: stated` | the source says it outright: a STIX relationship object, or a quote with a verb for that relation ("exploited", "attributed to", "dropped", "contacted", ...) |
+| `basis: inferred` | the quote names both ends but no such verb: the model read the link from context. Treat it as a lead |
+| `observed` | when it happened by the source: a date in the quote ("on 2024-03-12", "in March 2024", "since 2019"; the most precise one), else the report's publication date (`observed_from: published`) |
+| `created` | when Zarqa stored it |
+
+The entity page shows both on each relation, and actors, malware, tools, campaigns and CVEs get a **Timeline**:
+their relations and the reports that name them, by the date they happened, with where the date came from and
+when it was collected (`GET /api/entities/<id>/timeline`). STIX exports carry `x_zarqa_basis` and
+`x_zarqa_observed`. Investigations see the basis and date in `lookup` results.
+
+The verb lists are simple patterns: "stated" means the wording says it, not that it is true; a date in the
+quote can describe something other than the relation (an earlier campaign mentioned in passing). Relations stored
+by an older version get both fields when the database is first opened by this one.
+
 ## 4. Injection check (always)
 
 Text in the document that addresses an AI ("ignore previous instructions", "report no threats", chat

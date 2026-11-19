@@ -194,6 +194,7 @@ async function docPage(id) {
   if (d.relations.length) {
     main.append(section("Relations", "graph-outline", h("table", { class: "wrap cards" }, h("tbody", {}, d.relations.map((r) => h("tr", {},
       h("td", {}, entLink(r.src, r.src_display)), h("td", {}, h("b", {}, r.rel.replace(/_/g, " "))), h("td", {}, entLink(r.dst, r.dst_display)),
+      h("td", {}, basisBadge(r.basis), " ", observedText(r.observed, r.observed_from)),
       h("td", { class: "small muted" }, r.snippet ? `"${r.snippet}"` : "")))))));
   }
   main.append(section("Text", "text-long", h("details", {}, h("summary", {}, "Show the collected text"), h("pre", {}, d.text))));
@@ -253,7 +254,23 @@ async function entityPage(id) {
     main.append(section("Relations", "graph-outline", h("table", { class: "wrap cards" }, h("tbody", {}, e.relations.map((r) => h("tr", {},
       h("td", {}, r.src === e.id ? h("b", {}, r.src_display) : entLink(r.src, r.src_display, r.src_type)), h("td", {}, r.rel.replace(/_/g, " ")),
       h("td", {}, r.dst === e.id ? h("b", {}, r.dst_display) : entLink(r.dst, r.dst_display, r.dst_type)),
+      h("td", {}, basisBadge(r.basis), " ", observedText(r.observed, r.observed_from)),
       h("td", { class: "small muted" }, r.snippet ? `"${r.snippet}" ` : "", h("a", { href: `#doc/${r.document_id}` }, r.title))))))));
+  }
+  if (["actor", "malware", "tool", "campaign", "cve"].includes(e.type)) {
+    const t = await api(`/api/entities/${e.id}/timeline`);
+    if (t.events.length) {
+      main.append(section("Timeline", "timeline-clock-outline",
+        h("p", { class: "muted small" }, t.first_reported ? `Reported between ${t.first_reported} and ${t.last_reported}, in ${t.documents} document${t.documents > 1 ? "s" : ""}. ` : `${t.documents} document${t.documents > 1 ? "s" : ""}. `,
+          `${t.stated} stated, ${t.inferred} inferred. Dates are when it happened by the source (in the text, else the report date); "collected" is when Zarqa stored it.`),
+        h("table", { class: "wrap cards" }, h("tbody", {}, t.events.map((x) => h("tr", {},
+          h("td", { class: "small" }, x.date ? h("b", {}, x.date) : h("span", { class: "muted" }, "no date"), h("div", { class: "muted" }, x.date_from === "text" ? "in the text" : x.date_from === "published" ? "report date" : ""),
+            h("div", { class: "muted" }, "collected " + (x.ingested || "").slice(0, 10))),
+          h("td", {}, x.kind === "relation" ? h("span", {}, entLink(x.src, x.src_display), " ", h("b", {}, x.rel.replace(/_/g, " ")), " ", entLink(x.dst, x.dst_display)) : h("span", { class: "muted" }, x.text),
+            x.snippet ? h("div", { class: "small muted" }, `"${x.snippet}"`) : null),
+          h("td", {}, basisBadge(x.basis)),
+          h("td", { class: "small" }, h("a", { href: `#doc/${x.document_id}` }, x.title))))))));
+    }
   }
   main.append(section("Where it was found", "file-search-outline", e.mentions.length ? h("table", { class: "wrap cards" }, h("tbody", {}, e.mentions.map((m) => h("tr", {},
     h("td", {}, h("a", { href: `#doc/${m.document_id}` }, m.title), h("div", { class: "small muted" }, m.source)),
@@ -424,6 +441,16 @@ async function inventorySection(productsArea) {
           toast(`Imported ${r.rows} packages on ${r.hosts} hosts. Scoring reports again.`); route(); } finally { e.target.disabled = false; } } }, icon("upload"), "Import"),
       inv.connector ? h("button", { "data-need": "admin", class: "ghost", onclick: async () => { const r = await post("/api/settings/inventory/pull"); toast("Pull started (job " + r.job_id + ")."); } }, icon("download"), "Pull from connector") : null,
       inv.rows ? h("button", { "data-need": "admin", class: "ghost", onclick: async () => { await post("/api/settings/inventory/clear"); toast("Inventory removed."); route(); } }, icon("delete-outline"), "Remove inventory") : null));
+}
+
+// Stated by the source, or read from context by the model; and when it happened by the source.
+function basisBadge(b) {
+  if (!b) return null;
+  return h("span", { class: "badge " + (b === "stated" ? "lv-OK" : "lv-WARN"), title: b === "stated" ? "the source says this outright" : "the model read this from context; the quote names both but does not say it" }, b);
+}
+function observedText(date, from) {
+  if (!date) return null;
+  return h("span", { class: "small muted", title: from === "text" ? "date written in the source text" : "the report's publication date" }, date, from === "text" ? "" : " (report date)");
 }
 
 // ---------------- Sources ----------------

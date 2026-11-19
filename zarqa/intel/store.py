@@ -117,6 +117,13 @@ class KnowledgeStore:
             """)
             db.add_column(c, "documents", "reliability", "TEXT DEFAULT 'F'")
             db.add_column(c, "entities", "rating", "TEXT DEFAULT ''")
+            fresh = "basis" not in {r[1] for r in c.execute("PRAGMA table_info(relations)")}
+            db.add_column(c, "relations", "basis", "TEXT DEFAULT ''")
+            db.add_column(c, "relations", "observed", "TEXT DEFAULT ''")
+            db.add_column(c, "relations", "observed_from", "TEXT DEFAULT ''")
+        if fresh:                                     # relations stored before basis/observed existed
+            from .timeline import backfill
+            backfill(self)
 
     # ---- documents ----
     def add_document(self, *, source: str, kind: str, text: str, url: str = "", title: str = "",
@@ -242,10 +249,15 @@ class KnowledgeStore:
     def add_relation(self, src: int, rel: str, dst: int, document_id: int, *, method: str, snippet: str = "") -> bool:
         if rel not in RELATIONS or src == dst:
             return False
+        from .timeline import basis_of, observed_of
         with self._lock, self._conn() as c:
-            cur = c.execute("INSERT INTO relations (src, rel, dst, document_id, snippet, method, created) "
-                            "VALUES (?,?,?,?,?,?,?) ON CONFLICT(src, rel, dst, document_id) DO NOTHING",
-                            (int(src), rel, int(dst), int(document_id), snippet[:600], method, now()))
+            pub = c.execute("SELECT published FROM documents WHERE id=?", (int(document_id),)).fetchone()
+            obs, obs_from = observed_of(snippet, (pub[0] if pub else "") or "")
+            cur = c.execute("INSERT INTO relations (src, rel, dst, document_id, snippet, method, created, basis, "
+                            "observed, observed_from) VALUES (?,?,?,?,?,?,?,?,?,?) "
+                            "ON CONFLICT(src, rel, dst, document_id) DO NOTHING",
+                            (int(src), rel, int(dst), int(document_id), snippet[:600], method, now(),
+                             basis_of(rel, method, snippet), obs, obs_from))
             c.commit()
             return bool(cur.rowcount)
 
@@ -328,7 +340,7 @@ class KnowledgeStore:
             where.append("r.document_id=?")
             args.append(int(document_id))
         sql = ("SELECT r.id, r.src, s.type, s.display, r.rel, r.dst, t.type, t.display, r.document_id, r.snippet, "
-               "r.method, d.title FROM relations r JOIN entities s ON s.id=r.src JOIN entities t ON t.id=r.dst "
+               "r.method, d.title, r.created, r.basis, r.observed, r.observed_from FROM relations r JOIN entities s ON s.id=r.src JOIN entities t ON t.id=r.dst "
                "JOIN documents d ON d.id=r.document_id")
         if where:
             sql += " WHERE " + " AND ".join(where)
@@ -336,7 +348,7 @@ class KnowledgeStore:
         with self._conn() as c:
             rows = c.execute(sql, (*args, int(limit))).fetchall()
         keys = ("id", "src", "src_type", "src_display", "rel", "dst", "dst_type", "dst_display", "document_id",
-                "snippet", "method", "title")
+                "snippet", "method", "title", "created", "basis", "observed", "observed_from")
         return [dict(zip(keys, r, strict=True)) for r in rows]
 
     def add_tags(self, entity_id: int, tags: list[str]) -> None:

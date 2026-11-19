@@ -68,7 +68,9 @@
 .mdi-tag::before{content:"\F04F9"}
 .mdi-tag-multiple-outline::before{content:"\F12F7"}
 .mdi-target::before{content:"\F04FE"}
+.mdi-text::before{content:"\F09A8"}
 .mdi-text-long::before{content:"\F09AA"}
+.mdi-timeline-clock-outline::before{content:"\F11FC"}
 .mdi-toggle-switch::before{content:"\F0521"}
 .mdi-toggle-switch-off-outline::before{content:"\F0A19"}
 .mdi-tools::before{content:"\F1064"}

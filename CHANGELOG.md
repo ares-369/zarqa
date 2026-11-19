@@ -12,6 +12,9 @@ All notable changes are listed here. The format follows
   (`inventory.from`). Relevance then names the hosts that run a product a report mentions, and an installed product
   ranks a little higher. Products found in the inventory are suggested for the profile (well-known ones and those
   named in collected reports), never added by themselves.
+- Relations record whether the source stated them or the model inferred them, and when they happened by the
+  source (a date in the quote, else the report date) apart from when they were collected. Entity pages show a
+  timeline for actors, malware, tools, campaigns and CVEs; STIX exports and investigation lookups carry both.
 
 ## [0.2.0-beta] — 2026-11-20
 

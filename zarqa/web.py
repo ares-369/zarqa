@@ -331,6 +331,14 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
                                          order=request.args.get("order", "last_seen"),
                                          limit=_int("limit", 100, 1, 500), offset=_int("offset", 0, 0, 10**7)))
 
+    @app.route("/api/entities/<int:eid>/timeline")
+    def entity_timeline(eid):
+        from .intel.timeline import timeline
+        try:
+            return jsonify(timeline(kstore(), eid, limit=_int("limit", 200, 1, 1000)))
+        except ValueError:
+            return jsonify({"error": "not found"}), 404
+
     @app.route("/api/entities/<int:eid>")
     def entity(eid):
         from .intel import attack
