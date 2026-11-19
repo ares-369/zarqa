@@ -19,6 +19,7 @@
 .mdi-cog::before{content:"\F0493"}
 .mdi-connection::before{content:"\F1616"}
 .mdi-content-save::before{content:"\F0193"}
+.mdi-delete-outline::before{content:"\F09E7"}
 .mdi-details::before{content:"\F01C6"}
 .mdi-domain::before{content:"\F01D7"}
 .mdi-download::before{content:"\F01DA"}
@@ -56,6 +57,7 @@
 .mdi-rss::before{content:"\F046B"}
 .mdi-select::before{content:"\F0485"}
 .mdi-send::before{content:"\F048A"}
+.mdi-server-network::before{content:"\F048D"}
 .mdi-share-variant::before{content:"\F0497"}
 .mdi-shield-alert-outline::before{content:"\F0ECD"}
 .mdi-shield-check-outline::before{content:"\F0CC8"}

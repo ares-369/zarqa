@@ -374,6 +374,7 @@ async function profilePage() {
     h("p", { class: "muted small" }, "Zarqa ranks every report against this (Intel shows what is relevant to you first) and the brand watch uses your domains and brands. Saved to config.yaml; every report collected so far is scored again. Names here are masked before prompts go to a cloud model only if they are also under privacy.terms."),
     label("Name", "", name), label("Sectors", "", f.sectors), label("Regions", "", f.regions), label("Products and technologies", "the strongest signal", f.products),
     label("Brands", "", f.brands), label("Domains", "", f.domains), label("Notes", "", f.notes)));
+  main.append(await inventorySection(f.products));
   main.append(section("What you need to know", "help-circle-outline",
     h("p", { class: "muted small" }, "Intelligence requirements: questions your team needs answered. A report that contains one of the words is tagged with the requirement and ranks higher."),
     reqBox, h("button", { class: "ghost", onclick: () => addReq({}) }, icon("plus"), "Add a requirement")));
@@ -386,6 +387,43 @@ async function profilePage() {
       toast(r.set ? "Saved. Scoring every report again in the background." : "Saved (empty profile: nothing will be ranked).");
     } finally { e.target.disabled = false; }
   } }, icon("content-save"), "Save profile"), h("span", { class: "muted small" }, "Admins only.")));
+}
+
+// Installed software per host: where each profile product runs, and products to add from the inventory.
+async function inventorySection(productsArea) {
+  const inv = await api("/api/inventory");
+  const file = h("input", { type: "file", accept: ".csv,.json,text/csv,application/json" });
+  const box = h("div");
+  const addProduct = (name, btn) => {
+    const have = productsArea.value.split("\n").map((x) => x.trim().toLowerCase());
+    if (!have.includes(name.toLowerCase())) productsArea.value = (productsArea.value.trim() ? productsArea.value.trim() + "\n" : "") + name;
+    btn.disabled = true; toast(`Added ${name}. Save the profile to keep it.`);
+  };
+  const src = inv.sources.length
+    ? h("p", { class: "small" }, inv.sources.map((x) => h("span", { class: "badge", title: x.error || "" }, `${x.source}: ${x.hosts} hosts, ${x.rows} packages, ${when(x.imported) || "never"}`, x.error ? " (last pull failed)" : "")))
+    : h("p", { class: "muted small" }, "No inventory yet.");
+  const mine = inv.profile.length ? h("table", { class: "wrap cards" }, h("tbody", {}, inv.profile.map((x) => h("tr", {},
+    h("td", {}, h("b", {}, x.product)),
+    h("td", { class: "small" }, x.hosts.length ? `on ${x.hosts.length} host${x.hosts.length > 1 ? "s" : ""}: ${x.hosts.slice(0, 6).join(", ")}${x.hosts.length > 6 ? ", ..." : ""}`
+      : h("span", { class: "muted" }, inv.rows ? "not in the inventory" : "")))))) : null;
+  const sugg = inv.suggestions.length ? h("div", { class: "found" }, h("h3", {}, "Found in the inventory, not in your profile"),
+    h("p", { class: "muted small" }, "Well-known products, and products named in the reports collected so far, most-named first. Add the ones you want matched. Nothing is added by itself: short package names would match a lot of unrelated news."),
+    h("table", { class: "wrap cards" }, h("tbody", {}, inv.suggestions.map((x) => { const b = h("button", { class: "ghost" }, icon("plus"), "Add");
+      b.onclick = () => addProduct(x.product, b);
+      return h("tr", {}, h("td", {}, h("b", {}, x.product), h("div", { class: "muted small" }, x.packages.join(", "))),
+        h("td", { class: "small" }, x.reports ? `named in ${x.reports} report${x.reports > 1 ? "s" : ""}` : h("span", { class: "muted" }, "well known")),
+        h("td", { class: "small" }, `${x.hosts} host${x.hosts > 1 ? "s" : ""}`, h("div", { class: "muted" }, x.examples.join(", "))), h("td", {}, b)); })))) : null;
+  fill(box, src, mine, sugg);
+  return section("What you run", "server-network",
+    h("p", { class: "muted small" }, "Import the installed software of your hosts (CSV with host,name,version columns, or JSON, including inventory search results). Relevance then says which hosts a report is about, and an installed product ranks a little higher. Set inventory.from in config.yaml to pull it from a connector instead."),
+    box,
+    h("div", { class: "row" }, file,
+      h("button", { "data-need": "admin", onclick: async (e) => { const fl = file.files[0]; if (!fl) return toast("Choose a file.");
+        e.target.disabled = true;
+        try { const r = await post("/api/settings/inventory", { source: fl.name.replace(/\.[^.]+$/, ""), content: await fl.text() });
+          toast(`Imported ${r.rows} packages on ${r.hosts} hosts. Scoring reports again.`); route(); } finally { e.target.disabled = false; } } }, icon("upload"), "Import"),
+      inv.connector ? h("button", { "data-need": "admin", class: "ghost", onclick: async () => { const r = await post("/api/settings/inventory/pull"); toast("Pull started (job " + r.job_id + ")."); } }, icon("download"), "Pull from connector") : null,
+      inv.rows ? h("button", { "data-need": "admin", class: "ghost", onclick: async () => { await post("/api/settings/inventory/clear"); toast("Inventory removed."); route(); } }, icon("delete-outline"), "Remove inventory") : null));
 }
 
 // ---------------- Sources ----------------

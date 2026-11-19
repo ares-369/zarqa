@@ -5,6 +5,14 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Asset inventory: import the installed software of your hosts (CSV or JSON, including inventory search results)
+  on the Profile page or with `zarqa inventory import`, or pull it on a schedule from a read-only connector
+  (`inventory.from`). Relevance then names the hosts that run a product a report mentions, and an installed product
+  ranks a little higher. Products found in the inventory are suggested for the profile (well-known ones and those
+  named in collected reports), never added by themselves.
+
 ## [0.2.0-beta] — 2026-11-20
 
 ### Added

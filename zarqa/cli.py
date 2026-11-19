@@ -366,6 +366,41 @@ def cmd_intel(a) -> int:
             all_ids = [r[0] for r in c.execute("SELECT id FROM entities").fetchall()]
         print(f"ratings and confidence recomputed for {refresh(st, all_ids)} entities")
         return 0
+    if a.cmd == "inventory":
+        from .intel import inventory as invmod
+        from .intel.relevance import profile
+        inv = invmod.Inventory(st)
+        if a.action == "import":
+            if not a.file:
+                print("give the inventory file: zarqa inventory import FILE [--source NAME]", file=sys.stderr)
+                return 2
+            s_ = invmod.settings(cfg)
+            rows = invmod.parse(Path(a.file).read_bytes(), fields=s_["fields"], rows=s_["rows"])
+            r = inv.replace(a.source or Path(a.file).stem, rows)
+            print(f"{r['source']}: {r['rows']} rows, {r['hosts']} hosts, {r['products']} products")
+            print("run `zarqa rescore` to score the reports against it")
+            return 0
+        if a.action == "pull":
+            r = invmod.pull(cfg, st, actor="cli")
+            print(f"{r['source']}: {r['rows']} rows, {r['hosts']} hosts, {r['products']} products")
+            return 0
+        if a.action == "clear":
+            print(f"removed {inv.clear(a.source)} rows")
+            return 0
+        if a.action == "suggest":
+            for x in invmod.suggest(inv, profile(cfg)["products"], limit=a.limit, everything=a.all):
+                print(f"{x['reports']:4} reports {x['hosts']:4} hosts  {x['product']:32} "
+                      f"e.g. {', '.join(x['examples'][:3])}")
+            return 0
+        for x in inv.sources():
+            print(f"source {x['source']}: {x['rows']} rows, {x['hosts']} hosts, imported {x['imported'] or '-'}"
+                  f"{'  error: ' + x['error'] if x['error'] else ''}")
+        have = profile(cfg)["products"]
+        hp = inv.hosts_by_product()
+        for prod in have:
+            hs = invmod.matches(prod, hp)
+            print(f"  {prod:32} {('on ' + str(len(hs)) + ' hosts: ' + ', '.join(hs[:5])) if hs else 'not in the inventory'}")
+        return 0
     if a.cmd == "stats":
         import json as _json
         print(_json.dumps(st.stats(), indent=2))
@@ -467,6 +502,13 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_br2 = sub.add_parser("brand", help="lookalike domains of your own: list findings, or run the watch now")
     p_br2.add_argument("action", nargs="?", choices=["list", "run"], default="list")
     p_br2.add_argument("--limit", type=int, default=50)
+    p_inv = sub.add_parser("inventory", help="installed software per host: import a file, pull from the configured "
+                                             "connector, list, suggest profile products, clear")
+    p_inv.add_argument("action", nargs="?", choices=["list", "import", "pull", "suggest", "clear"], default="list")
+    p_inv.add_argument("file", nargs="?")
+    p_inv.add_argument("--source", help="name for this snapshot (default: the file name)")
+    p_inv.add_argument("--limit", type=int, default=50)
+    p_inv.add_argument("--all", action="store_true", help="suggest: every product, also ones no report names")
     p_rs = sub.add_parser("rescore", help="score documents again (relevance) and recompute every entity's rating "
                                           "and confidence")
     p_rs.add_argument("ids", nargs="*")
@@ -528,7 +570,8 @@ def cli_main(argv: list[str] | None = None) -> None:
     if a.cmd == "bridge":
         bridges[a.kind].run(a)
         return
-    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore", "ask", "brand", "export", "share", "brief", "report"):
+    if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore", "ask", "brand", "export", "share", "brief", "report",
+                 "inventory"):
         sys.exit(cmd_intel(a))
     if a.cmd == "demo":
         from .demo.setup import build

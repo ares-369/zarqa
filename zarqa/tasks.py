@@ -56,6 +56,8 @@ def rescore(p: dict, ctl, jobs) -> dict:
     if ((cfg.raw or {}).get("relevance") or {}).get("model"):
         from .llm import privacy_llm
         llm = privacy_llm(cfg)
+    from .intel.inventory import Inventory
+    assets = Inventory(st).hosts_by_product()
     n, offset = 0, 0
     while True:
         docs = st.documents(status="extracted", limit=500, offset=offset)
@@ -64,7 +66,7 @@ def rescore(p: dict, ctl, jobs) -> dict:
         for d in docs:
             if ctl is not None and not ctl.checkpoint():
                 return {"scored": n, "stopped": True}
-            score_document(cfg, st, d["id"], llm=llm)
+            score_document(cfg, st, d["id"], llm=llm, assets=assets)
             n += 1
         offset += 500
     return {"scored": n}
@@ -85,7 +87,18 @@ def brand(p: dict, ctl, jobs) -> dict:
     return {k: r[k] for k in ("candidates", "resolving", "new")} | {"errors": r["errors"][:5]}
 
 
-TASKS: dict[str, Any] = {"rescore": rescore, "brand": brand, "ping": ping, "pull": pull, "process": process, "enrich": enrich, "investigate": investigate}
+def inventory(p: dict, ctl, jobs) -> dict:
+    """Pull the asset inventory from the configured connector, then score the reports again."""
+    from .intel.inventory import pull as run
+    from .intel.store import store_for
+    cfg = _cfg()
+    r = run(cfg, store_for(cfg), actor=p.get("actor", ""))
+    if p.get("rescore", True):
+        r["rescored"] = rescore({}, ctl, jobs).get("scored", 0)
+    return r
+
+
+TASKS: dict[str, Any] = {"inventory": inventory, "rescore": rescore, "brand": brand, "ping": ping, "pull": pull, "process": process, "enrich": enrich, "investigate": investigate}
 
 
 def run_task(name: str, params: dict, ctl=None, *, jobs=None) -> dict:

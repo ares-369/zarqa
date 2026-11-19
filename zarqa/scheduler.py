@@ -54,6 +54,10 @@ class Scheduler:
         from .brand.watch import store_for as brand_store
         if brand_due(cfg, brand_store(cfg)):
             started.append(run_as(acc, self.jobs.submit, "brand", {"brand": "watch"}, None, task="brand", params={}))
+        from .intel.inventory import due as inventory_due
+        if inventory_due(cfg, store):
+            started.append(run_as(acc, self.jobs.submit, "inventory", {"inventory": "pull"}, None, task="inventory",
+                                  params={"actor": "scheduler"}))
         if time.monotonic() - self._last_expire > 3600:
             self._last_expire = time.monotonic()
             store.expire()

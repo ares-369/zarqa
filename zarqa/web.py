@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 from flask import Flask, g, jsonify, render_template, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -268,6 +271,58 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
         jid = jobs.submit("rescore", {"rescore": "all"}, None, task="rescore", params={})
         p = profile(c)
         return jsonify({**p, "set": has_profile(p), "job_id": jid})
+
+    @app.route("/api/inventory")
+    def inventory_summary():
+        from .intel import inventory as invmod
+        from .intel.relevance import profile
+        cfg = get_config()
+        inv = invmod.Inventory(kstore())
+        hp = inv.hosts_by_product()
+        have = profile(cfg)["products"]
+        return jsonify({"sources": inv.sources(), "rows": inv.count(),
+                        "connector": bool(invmod.settings(cfg)["from"]),
+                        "profile": [{"product": x, "hosts": invmod.matches(x, hp)} for x in have],
+                        "suggestions": invmod.suggest(inv, have, limit=_int("limit", 60, 1, 500))})
+
+    @app.route("/api/settings/inventory", methods=["POST"])
+    def settings_inventory():
+        """Import an inventory: a file upload (``file``) or a JSON body ``{"source", "rows" | "content"}``."""
+        from .intel import inventory as invmod
+        s = invmod.settings(get_config())
+        try:
+            if "file" in request.files:
+                f = request.files["file"]
+                rows = invmod.parse(f.read(), fields=s["fields"], rows=s["rows"])
+                source = request.form.get("source") or Path(f.filename or "file").stem
+            else:
+                body = request.get_json(silent=True) or {}
+                rows = invmod.parse(body.get("rows") if "rows" in body else str(body.get("content", "")),
+                                    fields=s["fields"], rows=s["rows"])
+                source = str(body.get("source") or "upload")
+        except (ValueError, UnicodeDecodeError) as exc:
+            return jsonify({"error": f"could not read the inventory: {exc}"[:300]}), 400
+        if not rows:
+            return jsonify({"error": "no rows with a host and a name"}), 400
+        r = invmod.Inventory(kstore()).replace(re.sub(r"[^A-Za-z0-9_.-]+", "-", source)[:60] or "upload", rows)
+        r["job_id"] = jobs.submit("rescore", {"rescore": "all"}, None, task="rescore", params={})
+        return jsonify(r)
+
+    @app.route("/api/settings/inventory/pull", methods=["POST"])
+    def settings_inventory_pull():
+        from .intel import inventory as invmod
+        if not invmod.settings(get_config())["from"]:
+            return jsonify({"error": "no inventory.from connector configured"}), 400
+        return jsonify({"job_id": jobs.submit("inventory", {"inventory": "pull"}, None, task="inventory",
+                                              params={"actor": actor()})})
+
+    @app.route("/api/settings/inventory/clear", methods=["POST"])
+    def settings_inventory_clear():
+        from .intel import inventory as invmod
+        body = request.get_json(silent=True) or {}
+        n = invmod.Inventory(kstore()).clear(str(body.get("source") or "") or None)
+        return jsonify({"removed": n, "job_id": jobs.submit("rescore", {"rescore": "all"}, None, task="rescore",
+                                                             params={})})
 
     @app.route("/api/entities")
     def entities():

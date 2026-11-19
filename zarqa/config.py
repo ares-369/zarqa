@@ -187,6 +187,8 @@ def load_config() -> Config:
     validate_relevance(data)
     from .intel.enrich import validate as validate_enrich
     validate_enrich(data.get("enrich") or {})
+    from .intel.inventory import validate as validate_inventory
+    validate_inventory(data)
     for sec in ("collect", "extract", "intel", "web", "relevance", "mcp"):
         if not isinstance(data.get(sec) or {}, dict):
             raise ValueError(f"{sec}: must be a mapping")

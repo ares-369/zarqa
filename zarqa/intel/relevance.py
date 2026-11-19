@@ -8,7 +8,9 @@ Rules first (no model, always):
   EPSS (tagged ``epss-top10``);
 * your intelligence requirements (``requirements:``): a requirement matches when one of its terms is in
   the document; the document is tagged ``pir:<name>``;
-* malicious indicators to act on.
+* malicious indicators to act on;
+* with an asset inventory (``inventory.py``), which hosts run a named product: an installed product adds a
+  little to the score and the reason lists the hosts.
 
 Then, if ``relevance.model: true`` and the rules found anything, the analyst model reads the profile and the
 document and gives its own score and one-sentence reason. Its score replaces the rules score; the reasons from
@@ -27,7 +29,7 @@ from ..connectors.untrusted import SYSTEM_RULE
 from .store import INDICATOR_TYPES, KnowledgeStore
 
 WEIGHTS = {"product": 35, "brand": 40, "domain": 45, "sector": 15, "region": 10, "targeted": 15, "kev": 20,
-           "epss": 10, "requirement": 25, "indicators": 5}
+           "epss": 10, "requirement": 25, "indicators": 5, "installed": 10}
 
 SYSTEM = f"""You rate how relevant one threat intelligence document is to ONE organization.
 High (70-100): it names a product, brand or domain the organization uses, or a threat actively targeting its
@@ -124,11 +126,21 @@ def rules_score(p: dict, doc: dict, mentions: list[dict], entities: dict[int, di
     text = f"{doc.get('title', '')}\n{doc.get('text', '')}"[:300_000]
     reasons: list[str] = []
     score = 0
+    assets = p.get("assets") or {}
     for key, label in (("products", "product"), ("brands", "brand"), ("domains", "domain")):
         h = _hits(text, p[key])
         if h:
             score += WEIGHTS[label]
             reasons.append(f"names your {label}{'s' if len(h) > 1 else ''} {', '.join(h[:5])}")
+            if key == "products" and assets:
+                from .inventory import matches
+                on = {x: matches(x, assets) for x in h}
+                on = {x: hs for x, hs in on.items() if hs}
+                if on:
+                    score += WEIGHTS["installed"]
+                    reasons.append("installed: " + "; ".join(
+                        f"{x} on {len(hs)} host{'s' if len(hs) > 1 else ''} ({', '.join(hs[:3])}"
+                        f"{', ...' if len(hs) > 3 else ''})" for x, hs in list(on.items())[:3]))
     targeted = {m["display"].lower() for m in mentions if m["type"] in ("sector", "country")}
     for key, label in (("sectors", "sector"), ("regions", "region")):
         h = _hits(text, p[key])
@@ -175,7 +187,10 @@ def _context(p: dict) -> str:
     return "\n".join(parts)
 
 
-def score_document(cfg, store: KnowledgeStore, doc_id: int, *, llm=None) -> dict[str, Any]:
+def score_document(cfg, store: KnowledgeStore, doc_id: int, *, llm=None,
+                   assets: dict[str, list[str]] | None = None) -> dict[str, Any]:
+    """``assets``: hosts per inventory product (``Inventory.hosts_by_product()``); read from the store when None.
+    Pass it when scoring many documents, so the inventory is read once."""
     p = profile(cfg)
     doc = store.document(doc_id)
     if not doc:
@@ -186,6 +201,10 @@ def score_document(cfg, store: KnowledgeStore, doc_id: int, *, llm=None) -> dict
         if doc.get("relevance") is not None:
             store.update_document(doc_id, relevance=None, relevance_reason="")
         return {"score": None, "reasons": [why], "method": "none"}
+    if assets is None:
+        from .inventory import Inventory
+        assets = Inventory(store).hosts_by_product() if p["products"] else {}
+    p["assets"] = assets
     mentions = store.mentions(document_id=doc_id, limit=2000)
     entities = {m["entity_id"]: store.entity(m["entity_id"]) for m in mentions if m["type"] == "cve"}
     r = rules_score(p, doc, mentions, {k: v for k, v in entities.items() if v})
