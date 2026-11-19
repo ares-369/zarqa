@@ -135,7 +135,10 @@ def _routable(kind: str, v: str) -> bool:
     host = v
     if kind == "url":
         from urllib.parse import urlparse
-        host = urlparse(v).hostname or ""
+        try:
+            host = urlparse(v).hostname or ""
+        except ValueError:          # "http://[broken": not a usable address
+            return False
     try:
         ip = ipaddress.ip_address(host)
     except ValueError:
@@ -146,7 +149,10 @@ def _routable(kind: str, v: str) -> bool:
 
 def _host(kind: str, v: str) -> str:
     from urllib.parse import urlparse
-    h = (urlparse(v).hostname or "") if kind == "url" else v.split("@")[-1]
+    try:
+        h = (urlparse(v).hostname or "") if kind == "url" else v.split("@")[-1]
+    except ValueError:
+        return ""
     return h.lower().removeprefix("www.")
 
 

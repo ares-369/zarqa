@@ -30,7 +30,9 @@ class FetchError(ValueError):
 
 
 class _Text(HTMLParser):
-    SKIP = {"script", "style", "noscript", "svg", "nav", "footer", "header", "form"}
+    # Page furniture, not the article: menus, sidebars ("trending", "related"), cookie and share boxes.
+    SKIP = {"script", "style", "noscript", "svg", "nav", "footer", "header", "form", "aside", "iframe", "button",
+            "template", "dialog"}
     BLOCK = {"p", "div", "br", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "section", "article", "td"}
 
     def __init__(self):

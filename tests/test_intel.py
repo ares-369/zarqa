@@ -86,6 +86,21 @@ def test_indicator_filters():
     assert "domain" not in strict
 
 
+def test_broken_urls_do_not_crash_extraction(store):
+    text = "Broken link http://[2001:db8::1 in the text, and a good one hxxp://bad[.]example[.]net/x."
+    found, _dropped = extract.indicators(text, strict_links=False)
+    assert "bad.example.net" in found["domain"]
+    d = store.add_document(source="m", kind="text", text=text, title="t")
+    assert process(store, d["id"])["rules"] >= 2 and store.document(d["id"])["status"] == "extracted"
+
+
+def test_sidebars_are_not_article_text():
+    from zarqa.collect.fetch import html_to_text
+    _title, text = html_to_text("<html><title>T</title><body><article><p>Real report about Outlook.</p></article>"
+                               "<aside><h3>Trending</h3><a>PostgreSQL flaw</a></aside></body></html>")
+    assert "Outlook" in text and "PostgreSQL" not in text
+
+
 def test_snippet_is_the_sentence():
     assert extract.snippet(REPORT, "203.0.113.66").startswith("The attachment dropped a loader")
     assert extract.snippet(REPORT, "update-check.example-cdn.net").startswith("The attachment")

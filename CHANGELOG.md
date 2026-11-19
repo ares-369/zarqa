@@ -113,6 +113,11 @@ First release.
 
 ### Fixed (found while building and testing this release)
 
+- (after 0.1.0-beta) A malformed URL in an article ("http://[...") stopped its extraction with "Invalid IPv6 URL";
+  it is now skipped. Found on 3 of 486 live articles.
+- (after 0.1.0-beta) Page sidebars, buttons and dialogs (`aside`, ...) were kept as article text, so "trending"
+  links added product names to unrelated articles and inflated relevance.
+
 - An internal IPv4 address at the end of a sentence was not masked for cloud models, not refused by the web
   leak guard and missed by the decoder (the indicator rules were fixed earlier).
 - A model's name was dropped when it added a generic word the document did not use ("Groove Gang" for
