@@ -20,9 +20,12 @@ import re
 
 _V = r"v?(\d+(?:\.\d+){0,3}(?:[a-z]+\d*)?)"
 _WORDS = r"(?:[A-Za-z][\w+-]*\s+){0,2}"      # "fixed in OpenSSH 9.8p1": up to two words before the version
+_REFERS_BACK = re.compile(r"\s*(?:it|this|these|they|the (?:flaw|bug|issue|vulnerability|vulnerabilities))\b",
+                          re.I)
 _SENT = re.compile(r"[^.!?\n]*(?:\.(?=\d)[^.!?\n]*)*[.!?\n]?")
 
 _PATTERNS = [
+    ("down", re.compile(r"(?:from\s+)?" + _V + r"\s+down\s+to\s+" + _V, re.I)),
     ("range", re.compile(r"(?:from\s+)?" + _V + r"\s*(?:through|thru|to|-|\u2013)\s*" + _V, re.I)),
     ("lt", re.compile(r"(?:before|prior to|earlier than|older than|below|lower than|<)\s*(?:version\s+)?" + _V, re.I)),
     ("le", re.compile(r"(?:up to(?: and including)?|through|<=|≤)\s*(?:version\s+)?" + _V, re.I)),
@@ -61,11 +64,15 @@ def _cmp(a: str, b: str) -> int:
 def _sentences_naming(text: str, names: list[str]) -> list[str]:
     low_names = [n.lower() for n in names if len(n) >= 3]
     out = []
+    prev = False
     for m in _SENT.finditer(text or ""):
         s = m.group(0)
         sl = s.lower()
-        if any(re.search(r"(?<![a-z0-9])" + re.escape(n) + r"(?![a-z0-9])", sl) for n in low_names):
+        named = any(re.search(r"(?<![a-z0-9])" + re.escape(n) + r"(?![a-z0-9])", sl) for n in low_names)
+        # "It impacts all versions ...": a sentence that refers back to the product named just before
+        if named or (prev and _REFERS_BACK.match(s)):
             out.append(s)
+        prev = named
     return out
 
 
@@ -80,11 +87,29 @@ def affected_ranges(text: str, names: list[str]) -> list[tuple]:
                     continue
                 taken.append((m.start(), m.end()))
                 g = [x for x in m.groups() if x]
-                if op == "range" and len(g) == 2 and "." in g[0] and "." in g[1] and _cmp(g[0], g[1]) < 0:
+                if op == "down" and len(g) == 2 and "." in g[0] and "." in g[1] and _cmp(g[1], g[0]) < 0:
+                    found.append(("range", g[1], g[0]))
+                elif op == "range" and len(g) == 2 and "." in g[0] and "." in g[1] and _cmp(g[0], g[1]) < 0:
                     found.append(("range", g[0], g[1]))
-                elif op != "range":
+                elif op not in ("range", "down"):
                     found.append((op, g[0]))
     return list(dict.fromkeys(found))
+
+
+def _major(version: str) -> int | None:
+    m = re.match(r"(\d+)", upstream(version))
+    return int(m.group(1)) if m else None
+
+
+def plausible(ranges: list[tuple], installed: list[str]) -> list[tuple]:
+    """Drop stated versions from another product line: a bound whose major number is more than 5 above every
+    installed major ("NGINX Plus ... 37.0.8.1" next to open-source nginx 1.x). A real jump ("fixed in 10.0" with
+    9.x installed) stays."""
+    majors = [m for m in (_major(v) for v in installed) if m is not None]
+    if not majors:
+        return ranges
+    top = max(majors)
+    return [r for r in ranges if all((_major(b) or 0) <= top + 5 for b in r[1:])]
 
 
 def in_range(installed: str, ranges: list[tuple]) -> bool | None:

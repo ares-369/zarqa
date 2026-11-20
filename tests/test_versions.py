@@ -40,3 +40,13 @@ def test_relevance_names_hosts_in_the_stated_range(tmp_path):
     assert any("outside the affected range" in r for r in safe["reasons"])
     plain = rules_score(p, {"title": "t", "text": "OpenSSH is widely used."}, [], {})
     assert hit["score"] > plain["score"] > safe["score"]
+
+
+def test_other_product_line_and_down_to():
+    from zarqa.intel.versions import plausible
+    t = ("Two critical NGINX bugs were fixed. It impacts all versions from 1.31.8 down to 1.9.5. NGINX Plus users "
+         "should update to versions 37.0.8.1. Unrelated: Apache 2.4.1 through 2.4.9.")
+    r = affected_ranges(t, ["NGINX"])
+    assert ("range", "1.9.5", "1.31.8") in r and ("lt", "37.0.8.1") in r and ("range", "2.4.1", "2.4.9") not in r
+    assert plausible(r, ["1.26.3-3", "1.22.1-9"]) == [("range", "1.9.5", "1.31.8")]
+    assert plausible([("lt", "10.0")], ["9.2p1"]) == [("lt", "10.0")]            # a real major jump stays

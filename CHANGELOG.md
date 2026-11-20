@@ -5,6 +5,15 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.3.3-beta] — 2026-11-20
+
+### Fixed
+
+- Affected versions: a version from another product line in the same sentence ("NGINX Plus ... 37.0.8.1" next to
+  open-source nginx 1.x) put every host in range. Stated versions far above anything installed are now ignored.
+- Affected versions: "from 1.31.8 down to 1.9.5" is read as a range, and a sentence that refers back to the
+  product ("It impacts all versions ...") is read with it.
+
 ## [0.3.2-beta] — 2026-11-20
 
 ### Added

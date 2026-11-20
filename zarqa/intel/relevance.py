@@ -141,13 +141,16 @@ def _versions(text: str, on: dict[str, list[str]], versions: dict[str, list[tupl
     """For each named, installed product: the affected range the report states, and the hosts whose installed
     version is in it. ``checked``: products with a stated range and no host in it."""
     from .inventory import matches
-    from .versions import affected_ranges, describe, in_range
+    from .versions import affected_ranges, describe, in_range, plausible
     out: dict[str, list] = {"affected": [], "checked": []}
     for name in on:
         ranges = affected_ranges(text, [name])
         if not ranges:
             continue
         rows = [hv for prod, hvs in versions.items() if matches(name, {prod: ["x"]}) for hv in hvs]
+        ranges = plausible(ranges, [v for _, v in rows])
+        if not ranges:
+            continue
         hit = sorted({(h, ver) for h, ver in rows if in_range(ver, ranges)})
         known = [hv for hv in rows if in_range(hv[1], ranges) is not None]
         rng = ", ".join(describe(r) for r in ranges[:2])
