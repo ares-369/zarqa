@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "zarqa"
 version = "0.3.1b0"
-description = "Open-source, AI-powered threat intelligence tool (beta)"
+description = "Open-source, AI-powered threat intelligence: collect, extract sourced intel, rank it by relevance to your organization, ask with cited evidence"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "ares-369" }]
-keywords = ["security", "threat-intelligence", "cti", "osint", "stix", "mcp", "llm"]
+keywords = ["security", "threat-intelligence", "cti", "osint", "stix", "taxii", "mcp", "llm", "ai", "mitre-attack", "ioc"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
