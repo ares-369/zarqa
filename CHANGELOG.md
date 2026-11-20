@@ -5,6 +5,27 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.3.2-beta] — 2026-11-20
+
+### Added
+
+- Affected versions: when a report states which versions are affected ("before 9.8", "fixed in 9.8p1",
+  "1.25.0 through 1.25.3"), relevance compares each host's installed version and names the hosts in range; when
+  every installed version is outside it, the reason says so and no "installed" bonus is given.
+- `extract.model_max_per_day`: a daily cap on model extraction; documents over the cap get rules only, marked
+  `rules (model cap)`. A person's "process again" still uses the model.
+
+### Changed
+
+- Requirements match only when a term is in the title, summary or opening of a document, or appears at least
+  twice. One passing mention deep in a page (menus, related-article boxes, asides) no longer tags it.
+- PyPI summary and keywords now match the repository description.
+
+### Fixed
+
+- Inventory matching: a longer profile name matched a shorter product ("Nginx Proxy Manager" matched hosts that
+  only run nginx). Only a broader profile name now covers a longer product name ("Proxmox" covers "Proxmox VE").
+
 ## [0.3.1-beta] — 2026-11-20
 
 ### Fixed

@@ -446,3 +446,17 @@ def test_viewer_cannot_add(home, monkeypatch):
     h = {"Authorization": "Basic " + base64.b64encode(b"zarqa:pw").decode()}
     assert c.post("/api/documents", json={"text": "x"}, headers=h).status_code == 403
     assert c.get("/api/entities", headers=h).status_code == 200
+
+
+def test_model_daily_cap(tmp_path):
+    from zarqa.intel.pipeline import model_runs_today
+    st = KnowledgeStore(tmp_path / "cap.sqlite")
+    cfg = type("C", (), {"raw": {"extract": {"model": True, "model_max_per_day": 1}}})()
+    a = st.add_document(source="m", kind="text", text=REPORT, title="a")["id"]
+    b = st.add_document(source="m", kind="text", text=REPORT + " Second copy.", title="b")["id"]
+    process(st, a, cfg=cfg, llm=FakeLLM(MODEL_REPLY))
+    assert model_runs_today(st) == 1 and st.document(a)["method"] == "rules+model"
+    r = process(st, b, cfg=cfg, llm=FakeLLM(MODEL_REPLY))
+    assert "daily model cap" in r["model_skipped"] and st.document(b)["method"] == "rules (model cap)"
+    process(st, b, cfg=cfg, llm=FakeLLM(MODEL_REPLY), use_model=True)       # a person asking still gets the model
+    assert st.document(b)["method"] == "rules+model"

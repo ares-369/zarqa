@@ -282,6 +282,15 @@ class Inventory:
     def hosts_by_product(self) -> dict[str, list[str]]:
         return {p["product"].lower(): p["hosts"] for p in self.products()}
 
+    def versions_by_product(self) -> dict[str, list[tuple[str, str]]]:
+        """(host, installed version) per product; one row per host and version."""
+        with self.store._conn() as c:
+            rows = c.execute("SELECT DISTINCT product, host, version FROM assets WHERE product != ''").fetchall()
+        out: dict[str, list[tuple[str, str]]] = {}
+        for prod, host, ver in rows:
+            out.setdefault(prod.lower(), []).append((host, ver or ""))
+        return out
+
     def count(self) -> int:
         with self.store._conn() as c:
             return int(c.execute("SELECT COUNT(*) FROM assets").fetchone()[0])
@@ -289,8 +298,8 @@ class Inventory:
 
 def matches(product: str, hosts_by_product: dict[str, list[str]]) -> list[str]:
     """The hosts running a profile product. A profile name matches an inventory product case-insensitively, or
-    when one is the other with words added before or after ("Proxmox" and "Proxmox VE", "Outlook" and
-    "Microsoft Outlook")."""
+    when the product is the profile name with words added before or after ("Proxmox" matches "Proxmox VE",
+    "Outlook" matches "Microsoft Outlook"; "Nginx Proxy Manager" does not match "nginx")."""
     key = product.strip().lower()
     if not key:
         return []
@@ -298,8 +307,9 @@ def matches(product: str, hosts_by_product: dict[str, list[str]]) -> list[str]:
         return hosts_by_product[key]
     found: set[str] = set()
     for prod, hosts in hosts_by_product.items():
-        short, long_ = (key, prod) if len(key) <= len(prod) else (prod, key)
-        if len(short) >= 3 and (long_.startswith(short + " ") or long_.endswith(" " + short)):
+        # only a broader profile name covers a longer product name ("Proxmox" covers "Proxmox VE"), never the
+        # reverse: "Nginx Proxy Manager" in the profile is not plain nginx on a host
+        if len(key) >= 3 and (prod.startswith(key + " ") or prod.endswith(" " + key)):
             found.update(hosts)
     return sorted(found, key=str.lower)
 
@@ -338,7 +348,8 @@ def suggest(inv: Inventory, profile_products: list[str], limit: int = 100, *, ev
     ``everything``: every product found, also the ones no report names."""
     have = {p.strip().lower() for p in profile_products}
     cands = [p for p in inv.products()
-             if p["product"].lower() not in have and not matches(p["product"], {k: ["x"] for k in have})]
+             if p["product"].lower() not in have
+             and not any(matches(h, {p["product"].lower(): ["x"]}) for h in have)]
     named = named_in_reports(inv.store, [p["product"] for p in cands])
     out = []
     for p in cands:

@@ -198,3 +198,16 @@ def test_api(home):
     j = c.get(f"/api/entities/{eid}").json
     assert j["enrichers"] == [] and j["enrichments"] == []
     assert c.post(f"/api/entities/{eid}/enrich", json={}).json["job_id"]
+
+
+def test_requirement_needs_more_than_a_passing_mention():
+    from zarqa.intel.relevance import rules_score
+    p = {"products": [], "brands": [], "domains": [], "sectors": [], "regions": [], "assets": {},
+         "requirements": [{"name": "ransomware", "question": "", "terms": ["ransomware"]}]}
+    body = "Vendor adds passkey support for Windows. " + "Details about the feature. " * 60
+    once_deep = {"title": "Vendor adds passkeys", "text": body + " Menu: Ransomware (7)"}
+    twice = {"title": "Weekly notes", "text": body + " ransomware here. And ransomware there."}
+    in_title = {"title": "Ransomware gang arrested", "text": body}
+    assert rules_score(p, once_deep, [], {})["requirements"] == []
+    assert rules_score(p, twice, [], {})["requirements"] == ["ransomware"]
+    assert rules_score(p, in_title, [], {})["requirements"] == ["ransomware"]

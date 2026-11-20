@@ -57,7 +57,8 @@ def rescore(p: dict, ctl, jobs) -> dict:
         from .llm import privacy_llm
         llm = privacy_llm(cfg)
     from .intel.inventory import Inventory
-    assets = Inventory(st).hosts_by_product()
+    inv = Inventory(st)
+    assets, asset_versions = inv.hosts_by_product(), inv.versions_by_product()
     n, offset = 0, 0
     while True:
         docs = st.documents(status="extracted", limit=500, offset=offset)
@@ -66,7 +67,7 @@ def rescore(p: dict, ctl, jobs) -> dict:
         for d in docs:
             if ctl is not None and not ctl.checkpoint():
                 return {"scored": n, "stopped": True}
-            score_document(cfg, st, d["id"], llm=llm, assets=assets)
+            score_document(cfg, st, d["id"], llm=llm, assets=assets, asset_versions=asset_versions)
             n += 1
         offset += 500
     return {"scored": n}

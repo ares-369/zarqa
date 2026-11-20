@@ -46,6 +46,18 @@ data, and the model is told never to follow instructions in it. Prompts to cloud
 If the model fails (not reachable, bad reply), the rules and dictionary results stay and the document is
 marked `rules (model failed)`.
 
+## Daily model cap
+
+```yaml
+extract:
+  model: true
+  model_max_per_day: 60       # 0 = no cap
+```
+
+On a small local GPU the model step takes about a minute per document. With a cap, documents collected after the
+day's quota (counted over the last 24 hours) get rules and dictionary extraction only, marked `rules (model cap)`.
+"Process again" by a person still uses the model.
+
 ## Relations: stated or inferred, and when
 
 Every kept relation records:

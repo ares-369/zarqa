@@ -7,7 +7,7 @@ Rules first (no model, always):
 * CVEs in the document that are known exploited (tagged ``kev`` by a list source) or in the top 10% by
   EPSS (tagged ``epss-top10``);
 * your intelligence requirements (``requirements:``): a requirement matches when one of its terms is in
-  the document; the document is tagged ``pir:<name>``;
+  the title, summary or opening of the document, or appears at least twice; the document is tagged ``pir:<name>``;
 * malicious indicators to act on;
 * with an asset inventory (``inventory.py``), which hosts run a named product: an installed product adds a
   little to the score and the reason lists the hosts.
@@ -29,7 +29,7 @@ from ..connectors.untrusted import SYSTEM_RULE
 from .store import INDICATOR_TYPES, KnowledgeStore
 
 WEIGHTS = {"product": 35, "brand": 40, "domain": 45, "sector": 15, "region": 10, "targeted": 15, "kev": 20,
-           "epss": 10, "requirement": 25, "indicators": 5, "installed": 10}
+           "epss": 10, "requirement": 25, "indicators": 5, "installed": 10, "in_range": 10}
 
 SYSTEM = f"""You rate how relevant one threat intelligence document is to ONE organization.
 High (70-100): it names a product, brand or domain the organization uses, or a threat actively targeting its
@@ -122,6 +122,42 @@ def _hits(text: str, terms: list[str]) -> list[str]:
     return out
 
 
+LEAD_CHARS = 700        # title, summary and the opening of the text: where a report says what it is about
+
+
+def _strong_hits(text: str, lead: str, terms: list[str]) -> list[str]:
+    """Terms a document is about, not just mentions in passing: in the title, summary or opening, or at least
+    twice anywhere. One mention deep in a page (a menu, a related-articles box, an aside) does not count."""
+    low = text.lower()
+    out = []
+    for t in _hits(text, terms):
+        n = len(re.findall(r"(?<![a-z0-9])" + re.escape(t.lower()) + r"(?![a-z0-9])", low))
+        if n >= 2 or _hits(lead, [t]):
+            out.append(t)
+    return out
+
+
+def _versions(text: str, on: dict[str, list[str]], versions: dict[str, list[tuple[str, str]]]) -> dict:
+    """For each named, installed product: the affected range the report states, and the hosts whose installed
+    version is in it. ``checked``: products with a stated range and no host in it."""
+    from .inventory import matches
+    from .versions import affected_ranges, describe, in_range
+    out: dict[str, list] = {"affected": [], "checked": []}
+    for name in on:
+        ranges = affected_ranges(text, [name])
+        if not ranges:
+            continue
+        rows = [hv for prod, hvs in versions.items() if matches(name, {prod: ["x"]}) for hv in hvs]
+        hit = sorted({(h, ver) for h, ver in rows if in_range(ver, ranges)})
+        known = [hv for hv in rows if in_range(hv[1], ranges) is not None]
+        rng = ", ".join(describe(r) for r in ranges[:2])
+        if hit:
+            out["affected"].append((name, rng, hit))
+        elif known:
+            out["checked"].append((name, rng))
+    return out
+
+
 def rules_score(p: dict, doc: dict, mentions: list[dict], entities: dict[int, dict]) -> dict[str, Any]:
     text = f"{doc.get('title', '')}\n{doc.get('text', '')}"[:300_000]
     reasons: list[str] = []
@@ -137,10 +173,20 @@ def rules_score(p: dict, doc: dict, mentions: list[dict], entities: dict[int, di
                 on = {x: matches(x, assets) for x in h}
                 on = {x: hs for x, hs in on.items() if hs}
                 if on:
-                    score += WEIGHTS["installed"]
+                    v = _versions(text, on, p.get("asset_versions") or {})
+                    if not (v["checked"] and not v["affected"]):
+                        score += WEIGHTS["installed"]       # no bonus when every installed version is outside
                     reasons.append("installed: " + "; ".join(
                         f"{x} on {len(hs)} host{'s' if len(hs) > 1 else ''} ({', '.join(hs[:3])}"
                         f"{', ...' if len(hs) > 3 else ''})" for x, hs in list(on.items())[:3]))
+                    if v["affected"]:
+                        score += WEIGHTS["in_range"]
+                        reasons.append("installed version in the affected range the report states: " + "; ".join(
+                            f"{x} {rng} on {', '.join(f'{h} {ver}' for h, ver in hv[:4])}"
+                            f"{', ...' if len(hv) > 4 else ''}" for x, rng, hv in v["affected"][:3]))
+                    elif v["checked"]:
+                        reasons.append("installed versions are outside the affected range the report states: "
+                                       + "; ".join(f"{x} {rng}" for x, rng in v["checked"][:3]))
     targeted = {m["display"].lower() for m in mentions if m["type"] in ("sector", "country")}
     for key, label in (("sectors", "sector"), ("regions", "region")):
         h = _hits(text, p[key])
@@ -162,8 +208,9 @@ def rules_score(p: dict, doc: dict, mentions: list[dict], entities: dict[int, di
         score += WEIGHTS["epss"]
         reasons.append(f"likely to be exploited (EPSS top 10%): {', '.join(hot[:5])}")
     pirs = []
+    lead = f"{doc.get('title', '')}\n{doc.get('summary', '')}\n{(doc.get('text') or '')[:LEAD_CHARS]}"
     for r in p["requirements"]:
-        h = _hits(text, r["terms"])
+        h = _strong_hits(text, lead, r["terms"])
         if h:
             pirs.append(r["name"])
             reasons.append(f"requirement {r['name']}: {', '.join(h[:3])}")
@@ -188,7 +235,8 @@ def _context(p: dict) -> str:
 
 
 def score_document(cfg, store: KnowledgeStore, doc_id: int, *, llm=None,
-                   assets: dict[str, list[str]] | None = None) -> dict[str, Any]:
+                   assets: dict[str, list[str]] | None = None,
+                   asset_versions: dict[str, list[tuple[str, str]]] | None = None) -> dict[str, Any]:
     """``assets``: hosts per inventory product (``Inventory.hosts_by_product()``); read from the store when None.
     Pass it when scoring many documents, so the inventory is read once."""
     p = profile(cfg)
@@ -201,10 +249,14 @@ def score_document(cfg, store: KnowledgeStore, doc_id: int, *, llm=None,
         if doc.get("relevance") is not None:
             store.update_document(doc_id, relevance=None, relevance_reason="")
         return {"score": None, "reasons": [why], "method": "none"}
-    if assets is None:
+    if assets is None or asset_versions is None:
         from .inventory import Inventory
-        assets = Inventory(store).hosts_by_product() if p["products"] else {}
+        inv = Inventory(store)
+        assets = assets if assets is not None else (inv.hosts_by_product() if p["products"] else {})
+        asset_versions = asset_versions if asset_versions is not None else (
+            inv.versions_by_product() if assets else {})
     p["assets"] = assets
+    p["asset_versions"] = asset_versions
     mentions = store.mentions(document_id=doc_id, limit=2000)
     entities = {m["entity_id"]: store.entity(m["entity_id"]) for m in mentions if m["type"] == "cve"}
     r = rules_score(p, doc, mentions, {k: v for k, v in entities.items() if v})

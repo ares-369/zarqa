@@ -25,8 +25,10 @@ organization:
 
 ## Intelligence requirements
 
-The questions your team needs answered. A requirement matches a document when one of its terms is in it; the
-document is tagged `pir:<name>` and can be listed with `/api/documents?tag=pir:<name>`.
+The questions your team needs answered. A requirement matches a document when one of its terms is in the
+title, the summary or the opening (first 700 characters), or appears at least twice. One mention deep in a page
+(a menu, a "related articles" box, an aside) does not count. The document is tagged `pir:<name>` and can be
+listed with `/api/documents?tag=pir:<name>`.
 
 ```yaml
 requirements:
@@ -48,6 +50,7 @@ Rules, always, no model:
 | matches one of your requirements | 25 |
 | malicious indicators, when anything else matched | 5 |
 | a named product is installed on your hosts (asset inventory) | 10 |
+| ...and a host's installed version is in the range the report states | 10 |
 
 Capped at 100. Indicator lists and STIX bundle records are not scored.
 
@@ -98,7 +101,20 @@ Tried on 2026-11-20 with a real inventory (19 hosts, 10,000 package rows) agains
 products after the noise filter; the first 30 suggestions were all real software (PHP, Python, Java, Node.js,
 PowerShell, the Linux kernel, curl, Chrome, PostgreSQL, Docker, ...), in about 1.3 seconds.
 
-Versions are stored and shown but not compared with the affected versions in a report; that is on the roadmap.
+### Affected versions
+
+When a report states which versions are affected, in a sentence that names the product ("OpenSSH before 9.8",
+"fixed in 9.8p1", "1.25.0 through 1.25.3", "10.2.2 and earlier", "up to and including 5.2"), Zarqa compares
+each host's installed version:
+
+* hosts in the stated range: the reason lists them ("installed version in the affected range the report states:
+  OpenSSH before 9.8 on web1 9.2p1") and the score rises by 10;
+* every installed version outside it: the reason says so and the "installed" bonus is not given.
+
+Installed versions are read as upstream versions (an epoch such as `1:` and a distribution revision such as
+`-2+deb12u3` are dropped). This reads the report's wording; it is not a vulnerability database. Distributions
+often fix a flaw without changing the upstream version (a backport), so "in range" means "check this host", not
+"this host is vulnerable".
 
 `zarqa rescore` (or "Score again") scores documents again after you change the profile.
 

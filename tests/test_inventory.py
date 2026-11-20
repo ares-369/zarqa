@@ -73,6 +73,7 @@ def test_snapshot_replaces_and_suggests(store):
     assert inv.matches("proxmox ve", hp) == ["pve1", "pve2"]
     assert inv.matches("Proxmox", hp) == ["pve1", "pve2"]                            # one is the other plus a word
     assert inv.matches("Outlook", hp) == []
+    assert inv.matches("Proxmox VE Backup Appliance", hp) == []                     # a longer profile name: no
     assert [s["product"] for s in inv.suggest(i, ["Proxmox"])] == ["OpenSSH"]
     assert i.clear("cmdb") == 1 and [s["source"] for s in i.sources()] == ["wazuh"]
 

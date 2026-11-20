@@ -24,7 +24,17 @@ def settings(cfg) -> dict:
     s = ((cfg.raw or {}).get("extract") or {}) if cfg is not None else {}
     return {"model": bool(s.get("model", True)), "chunk_chars": int(s.get("chunk_chars", 12_000)),
             "max_chunks": int(s.get("max_chunks", 4)), "strict_links": s.get("strict_links", "auto"),
+            "model_max_per_day": max(0, int(s.get("model_max_per_day", 0) or 0)),
             "ignore_domains": list(s.get("ignore_domains") or [])}
+
+
+def model_runs_today(store: KnowledgeStore) -> int:
+    """Documents the model extracted in the last 24 hours (for ``extract.model_max_per_day``)."""
+    from datetime import datetime, timedelta, timezone
+    since = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat(timespec="microseconds")
+    with store._conn() as c:
+        return int(c.execute("SELECT COUNT(*) FROM documents WHERE method LIKE '%model%' AND method NOT LIKE "
+                             "'%model failed%' AND extracted >= ?", (since,)).fetchone()[0])
 
 
 def _strict(doc: dict, mode) -> bool:
@@ -70,6 +80,11 @@ def process(store: KnowledgeStore, doc_id: int, *, cfg=None, llm=None, use_model
         out["dictionary"] += 1
 
     want_model = s["model"] if use_model is None else use_model
+    if want_model and llm is not None and use_model is None and s["model_max_per_day"]:
+        used = model_runs_today(store)
+        if used >= s["model_max_per_day"]:
+            want_model = False             # automatic runs only; "process again" by a person still uses the model
+            out["model_skipped"] = f"daily model cap reached ({used} of {s['model_max_per_day']}); rules only"
     if want_model and llm is not None:
         from .model_extract import extract_with_model
         r = extract_with_model(llm, doc, list(by_value_display(found)), chunk_chars=s["chunk_chars"],
@@ -105,7 +120,7 @@ def process(store: KnowledgeStore, doc_id: int, *, cfg=None, llm=None, use_model
             store.update_document(doc_id, summary=r["summary"])
         method = "rules+model" if not r["errors"] or r["items"] else "rules (model failed)"
     else:
-        method = "rules"
+        method = "rules (model cap)" if out.get("model_skipped") else "rules"
     hits = scan(text)
     if hits:
         out["review"] = "possible prompt injection: " + "; ".join(h["pattern"] for h in hits)
