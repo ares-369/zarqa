@@ -370,7 +370,7 @@ def token_ok(cfg, header: str) -> bool:
     elsewhere replace the inventory without any other access."""
     import hmac
     import os
-    env = str((((cfg.raw or {}).get("inventory") or {}).get("token_env") or "")) if cfg is not None else ""
+    env = str(((cfg.raw or {}).get("inventory") or {}).get("token_env") or "") if cfg is not None else ""
     tok = os.getenv(env, "") if env else ""
     return bool(tok) and header.startswith("Bearer ") and hmac.compare_digest(header[7:].strip(), tok)
 
