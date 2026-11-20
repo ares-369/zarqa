@@ -21,6 +21,9 @@ Formats read without any mapping:
 
 Anything else: ``inventory.fields`` maps each column to a dotted path, and ``inventory.rows`` names where the
 list is.
+
+A scheduled export elsewhere can push the inventory with ``POST /api/inventory/import`` and a bearer token set in
+``inventory.token_env``; that token can do nothing else.
 """
 
 from __future__ import annotations
@@ -362,6 +365,16 @@ def suggest(inv: Inventory, profile_products: list[str], limit: int = 100, *, ev
     return out[:limit]
 
 
+def token_ok(cfg, header: str) -> bool:
+    """A bearer token for ``POST /api/inventory/import`` only (``inventory.token_env``): lets a scheduled export
+    elsewhere replace the inventory without any other access."""
+    import hmac
+    import os
+    env = str((((cfg.raw or {}).get("inventory") or {}).get("token_env") or "")) if cfg is not None else ""
+    tok = os.getenv(env, "") if env else ""
+    return bool(tok) and header.startswith("Bearer ") and hmac.compare_digest(header[7:].strip(), tok)
+
+
 def settings(cfg) -> dict:
     raw = ((cfg.raw or {}).get("inventory") or {}) if cfg is not None else {}
     src = raw.get("from") or {}
@@ -381,6 +394,8 @@ def validate(raw: dict) -> None:
         raise ValueError("inventory.from: needs connector and tool (and optional arguments)")
     if src and not isinstance(src.get("arguments", {}), dict):
         raise ValueError("inventory.from.arguments: a mapping")
+    if inv.get("token_env") is not None and not re.fullmatch(r"[A-Z_][A-Z0-9_]*", str(inv.get("token_env") or "_")):
+        raise ValueError("inventory.token_env: the name of an environment variable holding the import token")
     f = inv.get("fields")
     if f is not None and (not isinstance(f, dict) or set(f) - set(FIELDS)):
         raise ValueError(f"inventory.fields: map some of {', '.join(FIELDS)} to dotted paths")

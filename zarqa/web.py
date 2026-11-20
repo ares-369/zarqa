@@ -289,6 +289,13 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
                         "profile": [{"product": x, "hosts": invmod.matches(x, hp)} for x in have],
                         "suggestions": invmod.suggest(inv, have, limit=_int("limit", 60, 1, 500))})
 
+    @app.route("/api/inventory/import", methods=["POST"])
+    def inventory_import():
+        """Replace one inventory source from a scheduled export: the inventory token, or an admin."""
+        if g.get("zarqa_user") != "inventory-token" and g.get("zarqa_role") != "admin":
+            return jsonify({"error": "needs the inventory token or the admin role"}), 403
+        return settings_inventory()
+
     @app.route("/api/settings/inventory", methods=["POST"])
     def settings_inventory():
         """Import an inventory: a file upload (``file``) or a JSON body ``{"source", "rows" | "content"}``."""

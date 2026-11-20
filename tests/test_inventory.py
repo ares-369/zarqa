@@ -181,3 +181,28 @@ def test_suggestions_are_known_or_named_in_reports(store):
     s = inv.suggest(i, [])
     assert [x["product"] for x in s] == ["acme-widgetd", "OpenSSH"] and s[0]["reports"] == 1
     assert {x["product"] for x in inv.suggest(i, [], everything=True)} == {"acme-widgetd", "OpenSSH", "obscure-thing"}
+
+
+def test_inventory_token_can_only_import(home, monkeypatch):
+    from zarqa.web import create_app
+    write_cfg(home, lambda d: (d.update(inventory={"token_env": "INV_TOKEN"}), d["auth"].update(mode="basic")))
+    monkeypatch.setenv("ZARQA_AUTH_PASSWORD", "pw")
+    monkeypatch.setenv("INV_TOKEN", "s3cret-inv")
+    app = create_app(config.load_config())
+    c = app.test_client()
+    tok = {"Authorization": "Bearer s3cret-inv"}
+    assert c.post("/api/inventory/import", json={"source": "siem", "content": CSV}).status_code == 401
+    assert c.post("/api/inventory/import", json={"content": CSV}, headers={"Authorization": "Bearer nope"}).status_code == 401
+    r = c.post("/api/inventory/import", json={"source": "siem", "content": CSV}, headers=tok)
+    assert r.status_code == 200 and r.json["rows"] == 7
+    for method, path in (("get", "/api/inventory"), ("get", "/api/documents"), ("post", "/api/settings/inventory/clear"),
+                         ("post", "/api/settings/profile"), ("get", "/api/config")):
+        assert getattr(c, method)(path, headers=tok).status_code == 401, path
+    basic = {"Authorization": "Basic " + base64.b64encode(b"zarqa:pw").decode()}
+    assert c.post("/api/inventory/import", json={"source": "x", "content": CSV}, headers=basic).status_code == 200
+
+
+def test_inventory_token_env_is_checked(home):
+    write_cfg(home, lambda d: d.update(inventory={"token_env": "bad name"}))
+    with pytest.raises(ValueError, match=r"inventory\.token_env"):
+        config.load_config()

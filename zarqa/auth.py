@@ -261,6 +261,11 @@ def init_auth(app, cfg) -> None:
             if token_ok(cfg):
                 g.zarqa_role, g.zarqa_user, g.zarqa_groups = "viewer", "taxii-token", []
                 return None
+        if p == "/api/inventory/import" and request.method == "POST":
+            from .intel.inventory import token_ok as inventory_token_ok
+            if inventory_token_ok(cfg, request.headers.get("Authorization", "")):
+                g.zarqa_role, g.zarqa_user, g.zarqa_groups = "viewer", "inventory-token", []
+                return None
         if p == "/mcp":
             import os
             mc = (cfg.raw or {}).get("mcp") or {}

@@ -88,6 +88,18 @@ inventory:
   fields: {}                   # e.g. {host: device.name, name: app.title, version: app.ver}
 ```
 
+Or push it from wherever the inventory lives, on that machine's schedule, with a token that can only do this:
+
+```yaml
+inventory:
+  token_env: ZARQA_INVENTORY_TOKEN     # in .env; accepted only on POST /api/inventory/import
+```
+
+```sh
+curl -X POST -H "Authorization: Bearer $ZARQA_INVENTORY_TOKEN" -H "Content-Type: application/json" \
+     -d "{\"source\": \"siem\", \"content\": $(jq -Rs . < packages.csv)}" https://zarqa.example.org/api/inventory/import
+```
+
 Each import replaces the earlier rows from the same source. A failed pull keeps the last good snapshot and
 waits as long as a good one before trying again.
 
