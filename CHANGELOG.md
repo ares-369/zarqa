@@ -5,6 +5,8 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0-beta] — 2026-11-20
+
 ### Added
 
 - Extraction without a model now finds ATT&CK software names (malware and tools, except names that are ordinary
