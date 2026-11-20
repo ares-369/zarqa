@@ -262,9 +262,10 @@ async function entityPage(id) {
     if (t.events.length) {
       main.append(section("Timeline", "timeline-clock-outline",
         h("p", { class: "muted small" }, t.first_reported ? `Reported between ${t.first_reported} and ${t.last_reported}, in ${t.documents} document${t.documents > 1 ? "s" : ""}. ` : `${t.documents} document${t.documents > 1 ? "s" : ""}. `,
-          `${t.stated} stated, ${t.inferred} inferred. Dates are when it happened by the source (in the text, else the report date); "collected" is when Zarqa stored it.`),
+          t.stated + t.inferred ? `${t.stated} stated, ${t.inferred} inferred. ` : "",
+          `Dates are when it happened by the source (in the text, else the report date); "collected" is when Zarqa stored it.`),
         h("table", { class: "wrap cards" }, h("tbody", {}, t.events.map((x) => h("tr", {},
-          h("td", { class: "small" }, x.date ? h("b", {}, x.date) : h("span", { class: "muted" }, "no date"), h("div", { class: "muted" }, x.date_from === "text" ? "in the text" : x.date_from === "published" ? "report date" : ""),
+          h("td", { class: "small", style: "white-space:nowrap" }, x.date ? h("b", {}, x.date) : h("span", { class: "muted" }, "no date"), h("div", { class: "muted" }, x.date_from === "text" ? "in the text" : x.date_from === "published" ? "report date" : ""),
             h("div", { class: "muted" }, "collected " + (x.ingested || "").slice(0, 10))),
           h("td", {}, x.kind === "relation" ? h("span", {}, entLink(x.src, x.src_display), " ", h("b", {}, x.rel.replace(/_/g, " ")), " ", entLink(x.dst, x.dst_display)) : h("span", { class: "muted" }, x.text),
             x.snippet ? h("div", { class: "small muted" }, `"${x.snippet}"`) : null),

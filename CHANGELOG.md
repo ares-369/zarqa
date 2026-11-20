@@ -5,6 +5,15 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.3.1-beta] — 2026-11-20
+
+### Fixed
+
+- Tables broke short words in the middle when space was tight ("Tin Hero / n", "expl / oits"); words now wrap
+  whole, and only long values (URLs, hashes, quoted passages) break anywhere.
+- Timeline: the date column wrapped "collected" mid-word; the stated/inferred count is hidden when an entity has
+  no relations.
+
 ## [0.3.0-beta] — 2026-11-20
 
 ### Added
