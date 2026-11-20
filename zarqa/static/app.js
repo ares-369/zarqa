@@ -134,7 +134,9 @@ function docTable(rows) {
     h("tbody", {}, rows.map((d) => h("tr", {}, h("td", { title: d.relevance_reason || "" }, relBadge(d.relevance)), h("td", { class: "small muted" }, when(d.fetched)),
       h("td", {}, h("a", { href: `#doc/${d.id}` }, d.title || "(untitled)"), d.summary ? h("div", { class: "muted small clamp" }, d.summary) : null,
         d.review ? h("div", { class: "warn small" }, icon("alert-outline"), " ", d.review) : null,
-        d.tags.filter((t) => t.startsWith("pir:")).map((t) => h("span", { class: "badge pir" }, t.slice(4)))),
+        d.tags.filter((t) => t.startsWith("pir:")).map((t) => h("span", { class: "badge pir" }, t.slice(4))),
+        (d.also || []).length ? h("details", { class: "small" }, h("summary", { class: "muted" }, `same story: +${d.also.length} more source${d.also.length > 1 ? "s" : ""}`),
+          h("ul", {}, d.also.map((o) => h("li", {}, h("a", { href: `#doc/${o.id}` }, o.title || "(untitled)"), h("span", { class: "muted" }, " " + o.source))))) : null),
       h("td", { class: "small" }, d.source), h("td", {}, h("span", { class: "badge st-" + d.status }, d.status), " ", d.method ? methodBadge(d.method) : null)))));
 }
 
@@ -146,18 +148,20 @@ async function intel() {
   const show = h("select", { title: "relevance to your organization (Profile)" },
     [["30", "relevant to us"], ["70", "highly relevant"], ["", "everything"]].map(([v, l]) => h("option", { value: v, selected: prof.set ? v === "30" : v === "" }, l)));
   const box = h("div");
+  const grouped = h("input", { type: "checkbox", checked: true });
   let offset = 0;
   const load = async () => {
-    const rows = await api(`/api/documents?limit=50&offset=${offset}&q=${encodeURIComponent(q.value)}&status=${status.value}&order=${order.value}` + (show.value ? `&min_relevance=${show.value}` : ""));
+    const rows = await api(`/api/documents?limit=50&offset=${offset}&q=${encodeURIComponent(q.value)}&status=${status.value}&order=${order.value}` + (show.value ? `&min_relevance=${show.value}` : "") + (grouped.checked ? "&group=story" : ""));
     fill(box, rows.length ? docTable(rows) : h("p", { class: "muted" }, "No documents."),
       h("div", { class: "row" }, offset > 0 && h("button", { class: "ghost", onclick: () => { offset = Math.max(0, offset - 50); load(); } }, icon("chevron-left"), "Newer"),
         rows.length === 50 && h("button", { class: "ghost", onclick: () => { offset += 50; load(); } }, "Older", icon("chevron-right"))));
   };
   q.addEventListener("keydown", (e) => { if (e.key === "Enter") { offset = 0; load(); } });
-  [status, order, show].forEach((x) => x.addEventListener("change", () => { offset = 0; load(); }));
+  [status, order, show, grouped].forEach((x) => x.addEventListener("change", () => { offset = 0; load(); }));
   main.append(section("Intel", "newspaper-variant-outline",
     prof.set ? null : h("p", { class: "small warn" }, icon("alert-outline"), " Showing everything: no organization profile yet. ", h("a", { href: "#profile" }, "Describe your organization"), " to see only what matters to you."),
     h("div", { class: "row" }, show, q, status, order,
+      h("label", { class: "small", title: "fold reports about the same event from other sources under one line" }, grouped, " group same story"),
     h("a", { href: "#add", "data-need": "op" }, h("button", {}, icon("plus"), "Add"))), box));
   await load();
 }

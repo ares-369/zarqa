@@ -207,11 +207,15 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
         st = kstore()
         if request.method == "GET":
             mr = request.args.get("min_relevance")
-            return jsonify(st.documents(status=request.args.get("status") or None,
-                                        source=request.args.get("source") or None, q=request.args.get("q", "")[:200],
-                                        limit=_int("limit", 50, 1, 200), offset=_int("offset", 0, 0, 10**7),
-                                        min_relevance=int(mr) if mr and mr.isdigit() else None,
-                                        order=request.args.get("order", "newest"), tag=request.args.get("tag") or None))
+            docs = st.documents(status=request.args.get("status") or None,
+                                source=request.args.get("source") or None, q=request.args.get("q", "")[:200],
+                                limit=_int("limit", 50, 1, 200), offset=_int("offset", 0, 0, 10**7),
+                                min_relevance=int(mr) if mr and mr.isdigit() else None,
+                                order=request.args.get("order", "newest"), tag=request.args.get("tag") or None)
+            if request.args.get("group") == "story":
+                from .intel.correlate import group_stories
+                docs = group_stories(st, docs)
+            return jsonify(docs)
         from .collect.fetch import FetchError
         from .intel.service import collector
         b = request.get_json(silent=True) or {}

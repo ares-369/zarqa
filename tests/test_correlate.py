@@ -60,3 +60,28 @@ def test_api(home):
     cve = st.find("cve", "CVE-2026-1111")
     assert c.get(f"/api/entities/{cve['id']}/connections").json[0]["display"] == "203.0.113.71"
     assert c.get("/api/documents/9999/related").status_code == 404
+
+
+def test_group_stories_folds_the_same_event(tmp_path):
+    from zarqa.intel.correlate import group_stories
+    st, ids = _store(tmp_path)
+    docs = [st.document(ids[k]) for k in ("a", "b", "c")]
+    g = group_stories(st, docs)
+    assert [d["id"] for d in g] == [ids["a"], ids["c"]]
+    assert [o["id"] for o in g[0]["also"]] == [ids["b"]] and g[1]["also"] == []
+
+
+def test_documents_api_groups_on_request(home):
+    from zarqa import config
+    from zarqa.intel.store import store_for
+    from zarqa.web import create_app
+    cfg = config.get_config(reload=True)
+    st = store_for(cfg)
+    for i, src in enumerate(("x", "y")):
+        d = st.add_document(source=src, kind="text", published="2026-11-19", title=f"Report {i}",
+                            text=f"Report {i}: CVE-2026-2222 exploited, beacon 203.0.113.72 and evil-{i}.example.")
+        process(st, d["id"])
+    c = create_app(cfg).test_client()
+    assert len(c.get("/api/documents").json) == 2
+    g = c.get("/api/documents?group=story").json
+    assert len(g) == 1 and len(g[0]["also"]) == 1

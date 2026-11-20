@@ -13,6 +13,12 @@ or three shared techniques; one shared technique, sector or country is too weak.
 **Same story**: published within 7 days of each other and sharing two or more specific, uncommon names, or with
 nearly the same title. Typically the vendor write-up, the news coverage and the government advisory of one event.
 
+## Grouped on the Intel page
+
+"Group same story" (on by default) folds the reports of one event, by the same rules, under the newest of them on
+each page of the Intel list, with "same story: +2 more sources" to open the others. `GET /api/documents?group=story`
+returns the same grouping (each document gets `also`).
+
 ## Seen with (entity page, `GET /api/entities/<id>/connections`)
 
 The entities most often named in the same reports as this one, rarer and more frequent first, with the reports

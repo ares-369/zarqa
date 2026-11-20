@@ -146,3 +146,56 @@ def connections(store: KnowledgeStore, entity_id: int, *, limit: int = 20) -> li
                     "score": round(score, 2)})
     out.sort(key=lambda x: -x["score"])
     return out[:limit]
+
+
+def group_stories(store: KnowledgeStore, docs: list[dict]) -> list[dict]:
+    """Fold reports that tell the same story (same rules as ``related_documents``: within 7 days, two or more
+    shared uncommon specific names, or nearly the same title) under the first one in the list. Each returned
+    document gets ``also``: the other reports in its story (empty for most)."""
+    if len(docs) < 2:
+        return [{**d, "also": []} for d in docs]
+    ids = [d["id"] for d in docs]
+    marks = ",".join("?" * len(ids))
+    ents: dict[int, set[int]] = {i: set() for i in ids}
+    with store._conn() as c:
+        for did, eid in c.execute(
+                f"SELECT DISTINCT m.document_id, m.entity_id FROM mentions m JOIN entities e ON e.id = m.entity_id "  # nosec B608
+                f"WHERE m.document_id IN ({marks}) AND e.type IN ({','.join('?' * len(SPECIFIC))}) "
+                f"AND e.status = 'active'", (*ids, *sorted(SPECIFIC))):
+            ents[int(did)].add(int(eid))
+    n = _reports(store)
+    df = _df(store, sorted({e for s in ents.values() for e in s}))
+    rare = {e for e, k in df.items() if k <= max(3, n // 20)}
+    words = {d["id"]: _title_words(d.get("title", "")) for d in docs}
+    when = {d["id"]: _when(d) for d in docs}
+    parent = {i: i for i in ids}
+
+    def root(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+    for x in range(len(ids)):
+        for y in range(x + 1, len(ids)):
+            a, b = ids[x], ids[y]
+            if not (when[a] and when[b] and abs((when[a] - when[b]).days) <= 7):
+                continue
+            shared = len(ents[a] & ents[b] & rare)
+            wa, wb = words[a], words[b]
+            sim = len(wa & wb) / max(1, len(wa | wb))
+            if shared >= 2 or sim >= 0.5:
+                ra, rb = root(a), root(b)
+                if ra != rb:
+                    first, second = (ra, rb) if ids.index(ra) < ids.index(rb) else (rb, ra)
+                    parent[second] = first
+    groups: dict[int, list[dict]] = {}
+    for d in docs:
+        groups.setdefault(root(d["id"]), []).append(d)
+    out = []
+    for d in docs:
+        g = groups[root(d["id"])]
+        if g[0]["id"] != d["id"]:
+            continue                          # shown under the first report of its story
+        out.append({**d, "also": [{"id": o["id"], "title": o.get("title", ""), "source": o.get("source", "")}
+                                  for o in g[1:]]})
+    return out
