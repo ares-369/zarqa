@@ -377,6 +377,21 @@ class KnowledgeStore:
             c.commit()
             return int(cur.rowcount or 0)
 
+    def replace_text(self, doc_id: int, text: str, *, max_chars: int = 200_000) -> bool:
+        """Swap a document's text for a fresh copy (re-fetched). False when it is unchanged or another document
+        already has exactly this text."""
+        text = (text or "")[:max_chars]
+        if not text.strip():
+            return False
+        sha = hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()
+        with self._lock, self._conn() as c:
+            r = c.execute("SELECT id FROM documents WHERE sha=?", (sha,)).fetchone()
+            if r:
+                return False
+            c.execute("UPDATE documents SET text=?, sha=?, status='new', error='' WHERE id=?", (text, sha, int(doc_id)))
+            c.commit()
+        return True
+
     def clear_extraction(self, document_id: int, method: str) -> None:
         """Remove one method's mentions and relations for a document (before re-running it)."""
         with self._lock, self._conn() as c:

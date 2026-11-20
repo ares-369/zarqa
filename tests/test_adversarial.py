@@ -140,3 +140,45 @@ def test_scored_injection_set():
     cases = yaml.safe_load((Path(__file__).resolve().parents[1] / "benchmarks/injection/cases.yaml").read_text())["cases"]
     wrong = [c["id"] for c in cases if bool(scan(c["text"])) != (c["expect"] == "flag")]
     assert wrong == []
+
+
+def test_related_headline_lists_are_not_article_text():
+    from zarqa.collect.fetch import html_to_text
+    page = """<html><body><article><h1>Vendor adds passkeys</h1>
+    <p>The vendor added passkey support. See <a href="/a">the announcement</a> for details.</p>
+    <p>Fixed issues:</p><ul><li><a href="/c1">CVE-2024-1111</a></li><li><a href="/c2">CVE-2024-2222</a></li>
+    <li><a href="/c3">CVE-2024-3333</a></li></ul></article>
+    <section><h2>Don't miss</h2><ul>
+    <li><a href="/x1">Exploited Puppet flaw puts the server at risk (CVE-2026-115731)</a></li>
+    <li><a href="/x2">Ukraine arrests key members of ransomware gang that extorted millions</a></li>
+    <li><a href="/x3">Ransomware access brokers are moving their deals off public forums</a></li></ul></section>
+    </body></html>"""
+    _, text = html_to_text(page)
+    assert "passkey support" in text and "the announcement" in text
+    assert all(c in text for c in ("CVE-2024-1111", "CVE-2024-2222", "CVE-2024-3333"))   # short links stay
+    assert "ransomware" not in text.lower() and "CVE-2026-115731" not in text               # other articles go
+
+
+def test_refetch_cleans_old_documents(home):
+    from tests.conftest import write_cfg
+    from tests.test_intel import fake_fetch
+    from zarqa import config
+    from zarqa.intel.service import process_documents, refetch_documents
+    from zarqa.intel.store import store_for
+    write_cfg(home, lambda d: d.update(extract={"model": False}, default_sources={"enabled": False},
+                                       requirements=[{"name": "ransomware", "question": "?", "terms": ["ransomware"]}]))
+    cfg = config.get_config(reload=True)
+    st = store_for(cfg)
+    polluted = "Vendor adds passkeys\n\nThe vendor added passkey support.\nRansomware gang arrested (CVE-2026-115731)"
+    d = st.add_document(source="news", kind="feed", text=polluted, url="https://news.example.org/a", title="Vendor adds passkeys")
+    process_documents(cfg, [d["id"]], store=st)
+    assert "pir:ransomware" in st.document(d["id"])["tags"] and st.find("cve", "CVE-2026-115731")
+    page = "<html><body><article><p>The vendor added passkey support for Windows.</p></article></body></html>"
+    r = refetch_documents(cfg, store=st, fetch=fake_fetch({"https://news.example.org/a": page}))
+    assert r["changed"] == 1 and r["errors"] == []
+    doc = st.document(d["id"])
+    assert "Ransomware" not in doc["text"] and "pir:ransomware" not in doc["tags"] and doc["status"] == "extracted"
+    cve = st.find("cve", "CVE-2026-115731")
+    assert not st.mentions(entity_id=cve["id"])                      # the other article's CVE is no longer linked
+    again = refetch_documents(cfg, store=st, fetch=fake_fetch({"https://news.example.org/a": page}))
+    assert again["changed"] == 0 and again["unchanged"] == 1

@@ -54,6 +54,54 @@ def process_documents(cfg, doc_ids: list[int], *, store: KnowledgeStore | None =
     return out
 
 
+def refetch_documents(cfg, doc_ids: list[int] | None = None, *, sources: list[str] | None = None,
+                      store: KnowledgeStore | None = None, use_model: bool | None = None, limit: int = 1000,
+                      fetch=None, checkpoint=None) -> dict:
+    """Read collected articles again from their URLs and extract them again: after an upgrade that reads pages
+    better, so old documents get the same quality as new ones. Feed items keep their title; the feed's own
+    summary is not kept (it repeats the article). Documents that cannot be fetched keep their old text."""
+    store = store or store_for(cfg)
+    col = collector(cfg, store, fetch=fetch)
+    if doc_ids:
+        docs = [d for d in (store.document(i) for i in doc_ids) if d]
+    else:
+        docs, offset = [], 0
+        while len(docs) < limit:
+            page = store.documents(limit=500, offset=offset)
+            if not page:
+                break
+            docs += [d for d in page if d["kind"] in ("feed", "page") and d.get("url")
+                     and (not sources or d["source"] in sources)]
+            offset += 500
+        docs = docs[:limit]
+    out = {"checked": 0, "changed": 0, "unchanged": 0, "errors": [], "documents": []}
+    llm = _llm(cfg) if use_model is not False else None
+    for d in docs:
+        if checkpoint is not None and not checkpoint():
+            out["stopped"] = True
+            break
+        if d["kind"] not in ("feed", "page") or not d.get("url"):
+            continue
+        out["checked"] += 1
+        try:
+            art = col._get(d["url"])
+        except Exception as exc:
+            out["errors"].append(f"{d['id']}: {exc}"[:300])
+            continue
+        text = f"{d['title']}\n\n{art['text']}".strip() if d["kind"] == "feed" else art["text"]
+        if not store.replace_text(d["id"], text, max_chars=col.max_chars):
+            out["unchanged"] += 1
+            continue
+        out["changed"] += 1
+        out["documents"].append(d["id"])
+        process_documents(cfg, [d["id"]], store=store, use_model=use_model, llm=llm)
+    if out["changed"]:
+        from .credibility import refresh
+        with store._conn() as c:
+            refresh(store, [r[0] for r in c.execute("SELECT id FROM entities").fetchall()])
+    return out
+
+
 def pull_source(cfg, name: str, *, actor: str = "scheduler", process_new: bool = True, use_model: bool | None = None,
                 store: KnowledgeStore | None = None, **kw) -> dict[str, Any]:
     store = store or store_for(cfg)

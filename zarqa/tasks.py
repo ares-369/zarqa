@@ -87,6 +87,14 @@ def brand(p: dict, ctl, jobs) -> dict:
     return {k: r[k] for k in ("candidates", "resolving", "new")} | {"errors": r["errors"][:5]}
 
 
+def refetch(p: dict, ctl, jobs) -> dict:
+    """Read collected articles again from their URLs and extract them again."""
+    from .intel.service import refetch_documents
+    r = refetch_documents(_cfg(), [int(x) for x in p.get("document_ids") or []] or None, sources=p.get("sources"),
+                          checkpoint=ctl.checkpoint if ctl else None)
+    return {k: v for k, v in r.items() if k != "documents"} | {"errors": r["errors"][:5]}
+
+
 def inventory(p: dict, ctl, jobs) -> dict:
     """Pull the asset inventory from the configured connector, then score the reports again."""
     from .intel.inventory import pull as run
@@ -98,7 +106,7 @@ def inventory(p: dict, ctl, jobs) -> dict:
     return r
 
 
-TASKS: dict[str, Any] = {"inventory": inventory, "rescore": rescore, "brand": brand, "ping": ping, "pull": pull, "process": process, "enrich": enrich, "investigate": investigate}
+TASKS: dict[str, Any] = {"refetch": refetch, "inventory": inventory, "rescore": rescore, "brand": brand, "ping": ping, "pull": pull, "process": process, "enrich": enrich, "investigate": investigate}
 
 
 def run_task(name: str, params: dict, ctl=None, *, jobs=None) -> dict:

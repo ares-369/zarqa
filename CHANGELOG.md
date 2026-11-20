@@ -5,6 +5,8 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0-beta] — 2026-11-20
+
 ### Added
 
 - Asset inventory: import the installed software of your hosts (CSV or JSON, including inventory search results)
@@ -15,6 +17,16 @@ All notable changes are listed here. The format follows
 - Relations record whether the source stated them or the model inferred them, and when they happened by the
   source (a date in the quote, else the report date) apart from when they were collected. Entity pages show a
   timeline for actors, malware, tools, campaigns and CVEs; STIX exports and investigation lookups carry both.
+- `zarqa refetch`: read collected articles again from their URLs and extract them again with the current rules.
+
+### Fixed
+
+- Article pages: lists of other articles' headlines ("Don't miss", "Related") were kept as part of the article,
+  so unrelated reports matched requirements (one site: every article tagged "ransomware") and were linked to
+  other articles' CVEs. Blocks that are mostly headline-length links are now left out; short link lists such as
+  linked CVE IDs stay. Run `zarqa refetch` to clean documents collected before.
+- PostgreSQL: importing an inventory failed (no executemany in the adapter); two connections creating the schema
+  at once could fail.
 
 ## [0.2.0-beta] — 2026-11-20
 

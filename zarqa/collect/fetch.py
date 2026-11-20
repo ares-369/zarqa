@@ -34,6 +34,8 @@ class _Text(HTMLParser):
     SKIP = {"script", "style", "noscript", "svg", "nav", "footer", "header", "form", "aside", "iframe", "button",
             "template", "dialog"}
     BLOCK = {"p", "div", "br", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6", "pre", "section", "article", "td"}
+    # Containers checked for being a list of other articles' headlines ("Don't miss", "Related", "Popular").
+    BOX = {"ul", "ol", "div", "section", "table"}
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -41,12 +43,20 @@ class _Text(HTMLParser):
         self.skip = 0
         self.title = ""
         self._in_title = False
+        self._a: list[int] = []         # open links, by how many containers were open when each started
+        self._box: list[dict] = []      # open containers: where their text starts, how much of it is links
 
     def handle_starttag(self, tag, attrs):
         if tag in self.SKIP:
             self.skip += 1
         if tag == "title":
             self._in_title = True
+        if tag == "a" and not self.skip and any(k == "href" for k, _ in attrs):
+            self._a = [len(self._box)]          # links cannot nest: a new one closes any left open, as browsers do
+            for b in self._box:
+                b["links"] += 1
+        if tag in self.BOX and not self.skip:
+            self._box.append({"tag": tag, "start": len(self.parts), "text": 0, "link": 0, "links": 0})
         if tag in self.BLOCK:
             self.parts.append("\n")
 
@@ -55,12 +65,39 @@ class _Text(HTMLParser):
             self.skip -= 1
         if tag == "title":
             self._in_title = False
+        if tag == "a" and self._a:
+            self._a.pop()
+        if tag in self.BOX and any(b["tag"] == tag for b in self._box):
+            while self._box:
+                b = self._box.pop()
+                if b["tag"] == tag:
+                    break
+            while self._a and self._a[-1] > len(self._box):     # a link left unclosed ends with its container
+                self._a.pop()
+            if self._headlines(b):
+                del self.parts[b["start"]:]
+                for outer in self._box:        # what was dropped no longer counts for the containers around it
+                    outer["text"] -= b["text"]
+                    outer["link"] -= b["link"]
+                    outer["links"] -= b["links"]
+                self.parts.append("\n")
+
+    @staticmethod
+    def _headlines(b: dict) -> bool:
+        """Mostly links with headline-length text: a list of other articles, not this one. Short link lists
+        (CVE IDs or indicators linked to an advisory) are kept."""
+        return b["links"] >= 3 and b["text"] > 0 and b["link"] >= 0.7 * b["text"] and b["link"] / b["links"] >= 25
 
     def handle_data(self, data):
         if self._in_title:
             self.title += data
         elif not self.skip:
             self.parts.append(data)
+            n = len(data.strip())
+            for b in self._box:
+                b["text"] += n
+                if self._a:
+                    b["link"] += n
 
 
 def html_to_text(html: str) -> tuple[str, str]:

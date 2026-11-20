@@ -58,6 +58,24 @@ Every source can also set `tags` and `confidence` (0-100, default 50; lists 50, 
 - At most 15 MB per response and 200,000 characters of text per document (`collect.max_document_chars`).
 - Feeds that declare a DOCTYPE or XML entities are refused.
 
+## Article text
+
+When a feed item links to an article, Zarqa reads the page and keeps the article text. Page furniture is left
+out: menus, headers, footers, sidebars, forms, and any block that is mostly links with headline-length text
+(the "Don't miss" or "Related" lists of other articles). Those lists used to leak other articles' headlines and
+CVEs into a report, so it matched requirements and gained CVEs it was not about. Short link lists, such as CVE IDs
+linked to an advisory, are kept.
+
+Documents collected by an earlier version can be read again with the current rules:
+
+```sh
+zarqa refetch                      # every collected article (feeds and pages), up to --limit 1000
+zarqa refetch --source talos       # one source
+zarqa refetch 265 266              # given documents
+```
+
+Each changed document is extracted and scored again; documents that cannot be fetched keep their old text.
+
 ## STIX
 
 A STIX 2.x bundle (from a `list` source with `format: stix`, a `connector` source, `zarqa add --file x.json`,

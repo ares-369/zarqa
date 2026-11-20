@@ -366,6 +366,14 @@ def cmd_intel(a) -> int:
             all_ids = [r[0] for r in c.execute("SELECT id FROM entities").fetchall()]
         print(f"ratings and confidence recomputed for {refresh(st, all_ids)} entities")
         return 0
+    if a.cmd == "refetch":
+        r = service.refetch_documents(cfg, [int(x) for x in a.ids] or None, sources=a.source or None, store=st,
+                                      use_model=use_model, limit=a.limit)
+        print(f"checked {r['checked']}, changed and extracted again {r['changed']}, unchanged {r['unchanged']}, "
+              f"could not fetch {len(r['errors'])}")
+        for e in r["errors"][:10]:
+            print("  " + e)
+        return 0
     if a.cmd == "inventory":
         from .intel import inventory as invmod
         from .intel.relevance import profile
@@ -502,6 +510,12 @@ def cli_main(argv: list[str] | None = None) -> None:
     p_br2 = sub.add_parser("brand", help="lookalike domains of your own: list findings, or run the watch now")
     p_br2.add_argument("action", nargs="?", choices=["list", "run"], default="list")
     p_br2.add_argument("--limit", type=int, default=50)
+    p_rf = sub.add_parser("refetch", help="read collected articles again from their URLs and extract them again "
+                                          "(after an upgrade that reads pages better)")
+    p_rf.add_argument("ids", nargs="*")
+    p_rf.add_argument("--source", action="append", help="only this source (repeatable)")
+    p_rf.add_argument("--limit", type=int, default=1000)
+    p_rf.add_argument("--no-model", action="store_true", help="rules only")
     p_inv = sub.add_parser("inventory", help="installed software per host: import a file, pull from the configured "
                                              "connector, list, suggest profile products, clear")
     p_inv.add_argument("action", nargs="?", choices=["list", "import", "pull", "suggest", "clear"], default="list")
@@ -571,7 +585,7 @@ def cli_main(argv: list[str] | None = None) -> None:
         bridges[a.kind].run(a)
         return
     if a.cmd in ("sources", "add", "process", "entities", "lookup", "stats", "enrich", "rescore", "ask", "brand", "export", "share", "brief", "report",
-                 "inventory"):
+                 "inventory", "refetch"):
         sys.exit(cmd_intel(a))
     if a.cmd == "demo":
         from .demo.setup import build
