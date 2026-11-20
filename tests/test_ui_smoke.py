@@ -55,7 +55,12 @@ def server(tmp_path_factory):
 
 def _browser(p):
     exe = os.getenv("ZARQA_UI_CHROMIUM")
-    return p.chromium.launch(**({"executable_path": exe} if exe else {}), args=["--no-sandbox"])
+    try:
+        return p.chromium.launch(**({"executable_path": exe} if exe else {}), args=["--no-sandbox"])
+    except sync_api.Error as exc:
+        if "Executable doesn't exist" in str(exc):
+            pytest.skip("no Chromium for Playwright: run `python -m playwright install chromium`")
+        raise
 
 
 def _visit_all(page, base, issues, label):
