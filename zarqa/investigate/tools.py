@@ -10,7 +10,7 @@ import json
 from typing import Any
 
 from ..intel import attack
-from ..intel.store import TYPES, KnowledgeStore
+from ..intel.store import INDICATOR_TYPES, TYPES, KnowledgeStore
 
 LOCAL = "zarqa"
 
@@ -26,8 +26,10 @@ TOOLS: list[dict] = [
     {"name": "search_entities", "description": "Find stored entities by type and/or text. Types: " + ", ".join(TYPES),
      "inputSchema": _s({"type": {"type": "string"}, "q": {"type": "string"}, "limit": {"type": "integer"}})},
     {"name": "search_documents", "description": "Find collected reports by words in their title or text; newest first, "
-     "or most relevant to the organization with order=relevance.",
-     "inputSchema": _s({"q": {"type": "string"}, "order": {"type": "string"}, "limit": {"type": "integer"}})},
+     "or most relevant to the organization with order=relevance. min_relevance (0-100) and days (collected in the "
+     "last N days) narrow it; each result says why it matters here and what it names.",
+     "inputSchema": _s({"q": {"type": "string"}, "order": {"type": "string"}, "limit": {"type": "integer"},
+                        "min_relevance": {"type": "integer"}, "days": {"type": "integer"}})},
     {"name": "read_document", "description": "Read a stored report: its text (4000 characters from offset) and what was "
      "extracted from it.", "inputSchema": _s({"id": {"type": "integer"}, "offset": {"type": "integer"}}, ["id"])},
     {"name": "attack_info", "description": "What MITRE ATT&CK says about a group, software, campaign (name or alias) or a "
@@ -78,11 +80,29 @@ def call(name: str, args: dict[str, Any], *, cfg, store: KnowledgeStore, actor: 
         return [{"type": e["type"], "value": e["display"], "times_seen": e["seen_count"],
                  "last_seen": e["last_seen"][:10]} for e in rows]
     if name == "search_documents":
+        limit = max(1, min(25, int(args.get("limit", 10) or 10)))
+        mr = args.get("min_relevance")
+        days = int(args.get("days", 0) or 0)
         rows = store.documents(q=str(args.get("q", ""))[:200], order=str(args.get("order", "newest")),
-                               limit=max(1, min(25, int(args.get("limit", 10) or 10))))
-        return [{"id": d["id"], "title": d["title"][:200], "source": d["source"], "collected": d["fetched"][:10],
-                 "published": d["published"][:30], "relevance": d["relevance"], "summary": d["summary"][:300]}
-                for d in rows]
+                               min_relevance=int(mr) if mr not in (None, "") else None, limit=limit * 4 if days else limit)
+        if days:
+            from datetime import datetime, timedelta, timezone
+            since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+            rows = [d for d in rows if d["fetched"] >= since][:limit]
+        out = []
+        for d in rows:
+            named: dict[str, list[str]] = {}
+            for m in store.mentions(document_id=d["id"], limit=300):
+                if m["type"] in ("actor", "malware", "tool", "campaign", "cve", "technique", *INDICATOR_TYPES) and \
+                        m.get("context") not in ("benign", "victim", "reference"):
+                    lst = named.setdefault(m["type"], [])
+                    if m["display"] not in lst and len(lst) < 10:
+                        lst.append(m["display"])
+            out.append({"id": d["id"], "title": d["title"][:200], "source": d["source"], "collected": d["fetched"][:10],
+                        "published": d["published"][:30], "relevance": d["relevance"],
+                        "why_relevant": (d.get("relevance_reason") or "")[:400], "summary": d["summary"][:300],
+                        "names": named})
+        return out
     if name == "read_document":
         d = store.document(int(args.get("id", 0)))
         if not d:

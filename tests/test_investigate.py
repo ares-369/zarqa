@@ -193,3 +193,20 @@ def test_api_and_orphans(home, monkeypatch):
     assert c.get(f"/api/investigations/{r['id']}").json["question"] == "What do we know about APT28?"
     assert any(x["id"] == r["id"] for x in c.get("/api/investigations").json)
     assert c.get("/api/investigations/999").status_code == 404
+
+
+def test_search_documents_filters_and_explains(tmp_path):
+    from tests.test_intel import REPORT
+    from zarqa.intel.pipeline import process
+    from zarqa.intel.store import KnowledgeStore
+    from zarqa.investigate.tools import call
+    st = KnowledgeStore(tmp_path / "k.sqlite")
+    a = st.add_document(source="lab", kind="text", text=REPORT, title="relevant")["id"]
+    b = st.add_document(source="lab", kind="text", text="Weekly gardening tips.", title="noise")["id"]
+    process(st, a)
+    process(st, b)
+    st.update_document(a, relevance=80, relevance_reason="names your product Outlook")
+    st.update_document(b, relevance=0)
+    r = call("search_documents", {"order": "relevance", "min_relevance": 50, "days": 7}, cfg=None, store=st)
+    assert [x["id"] for x in r] == [a]
+    assert r[0]["why_relevant"] == "names your product Outlook" and "CVE-2023-23397" in r[0]["names"]["cve"]

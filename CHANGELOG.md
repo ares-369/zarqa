@@ -10,6 +10,8 @@ All notable changes are listed here. The format follows
 - Relations without a model: a found name, a relation verb and another found name in one sentence
   ("Qilin exploited CVE-2026-0257") become a stated relation with the sentence as its quote.
 - Intel page: reports of the same event from several sources are folded under one line ("group same story").
+- MCP/investigation tool `search_documents`: `min_relevance` and `days` filters; each result says why it is relevant
+  here and what it names (so a hunting tool can turn it into a hypothesis).
 - `POST /api/inventory/import` with an import-only token (`inventory.token_env`), so a scheduled export on another
   machine can push the asset inventory without sharing that machine's credentials.
 
