@@ -331,6 +331,32 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
                                          order=request.args.get("order", "last_seen"),
                                          limit=_int("limit", 100, 1, 500), offset=_int("offset", 0, 0, 10**7)))
 
+    @app.route("/api/handoff")
+    def handoff_info():
+        from .share.handoff import settings
+        h = settings(get_config())
+        return jsonify({"hunt": h["name"] if h else None})
+
+    @app.route("/api/entities/<int:eid>/hunt")
+    def entity_hunt(eid):
+        from .share.handoff import for_entity
+        try:
+            return jsonify(for_entity(get_config(), kstore(), eid))
+        except LookupError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except ValueError:
+            return jsonify({"error": "not found"}), 404
+
+    @app.route("/api/documents/<int:doc_id>/hunt")
+    def document_hunt(doc_id):
+        from .share.handoff import for_document
+        try:
+            return jsonify(for_document(get_config(), kstore(), doc_id))
+        except LookupError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except ValueError:
+            return jsonify({"error": "not found"}), 404
+
     @app.route("/api/documents/<int:doc_id>/related")
     def document_related(doc_id):
         from .intel.correlate import related_documents

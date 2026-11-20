@@ -176,7 +176,7 @@ async function docPage(id) {
       h("a", { href: `/api/export/stix?document=${id}&download=1` }, h("button", { class: "ghost" }, icon("download"), "STIX")),
       h("a", { href: `/api/export/misp?document=${id}&download=1` }, h("button", { class: "ghost" }, icon("download"), "MISP format")),
       h("a", { href: `/api/documents/${id}/report.html`, target: "_blank", rel: "noopener" }, h("button", { class: "ghost" }, icon("file-chart-outline"), "Report")),
-      shareBox({ document_id: Number(id) })),
+      shareBox({ document_id: Number(id) }), await huntButton(`/api/documents/${id}/hunt`)),
     d.review ? h("p", { class: "warn" }, icon("alert-outline"), " ", d.review) : null,
     d.error ? h("p", { class: "bad small" }, d.error) : null,
     d.summary ? h("p", {}, d.summary, h("span", { class: "muted small" }, "  (model summary)")) : null,
@@ -243,7 +243,8 @@ async function entityPage(id) {
       e.expires ? ` | expires ${e.expires.slice(0, 10)}` : ""),
     e.note ? h("p", { class: "small" }, e.note) : null,
     h("div", { class: "row", "data-need": "op" }, [["active", "check"], ["false_positive", "close-circle-outline"], ["allowlisted", "shield-check-outline"]].map(([st, ic]) =>
-      e.status !== st && h("button", { class: "ghost", onclick: async () => { const note = st === "active" ? "" : (prompt("Note (why)") || ""); await post(`/api/entities/${id}/status`, { status: st, note }); route(); } }, icon(ic), "Mark " + st.replace("_", " "))))));
+      e.status !== st && h("button", { class: "ghost", onclick: async () => { const note = st === "active" ? "" : (prompt("Note (why)") || ""); await post(`/api/entities/${id}/status`, { status: st, note }); route(); } }, icon(ic), "Mark " + st.replace("_", " "))),
+      ["actor", "malware", "tool", "campaign", "cve"].includes(e.type) ? await huntButton(`/api/entities/${id}/hunt`) : null)));
   const enrBox = h("div");
   main.append(section("Enrichment", "magnify-plus-outline",
     e.enrichers.length ? h("div", { class: "row", "data-need": "op" }, e.enrichers.map((n) => h("button", { class: "ghost", onclick: async (ev) => {
@@ -461,6 +462,17 @@ async function inventorySection(productsArea) {
           toast(`Imported ${r.rows} packages on ${r.hosts} hosts. Scoring reports again.`); route(); } finally { e.target.disabled = false; } } }, icon("upload"), "Import"),
       inv.connector ? h("button", { "data-need": "admin", class: "ghost", onclick: async () => { const r = await post("/api/settings/inventory/pull"); toast("Pull started (job " + r.job_id + ")."); } }, icon("download"), "Pull from connector") : null,
       inv.rows ? h("button", { "data-need": "admin", class: "ghost", onclick: async () => { await post("/api/settings/inventory/clear"); toast("Inventory removed."); route(); } }, icon("delete-outline"), "Remove inventory") : null));
+}
+
+// "Hunt this" button: opens the configured hunting tool with the hypothesis and context filled in (nothing runs
+// there until a person starts it). Hidden when no tool is configured.
+const handoffReady = api("/api/handoff").catch(() => ({ hunt: null }));
+async function huntButton(path) {
+  const h0 = await handoffReady;
+  if (!h0.hunt) return null;
+  return h("button", { "data-need": "op", class: "ghost", title: "Opens the hunting tool with a hypothesis and context filled in; you review and start it there",
+    onclick: async () => { const r = await api(path); if (r.url) window.open(r.url, "_blank", "noopener"); } },
+    icon("target"), `Hunt this in ${h0.hunt}`);
 }
 
 // Stated by the source, or read from context by the model; and when it happened by the source.

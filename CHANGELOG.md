@@ -15,6 +15,8 @@ All notable changes are listed here. The format follows
 - Correlation: each report lists related reports (shared names weighted by rarity) and marks the same story told
   by other sources within a week; each entity lists what it is seen with, with the reports as evidence
   (docs/correlation.md). Co-mentions are not used as investigation evidence.
+- "Hunt this in ..." on actors, malware, tools, campaigns, CVEs and reports: opens a configured hunting tool
+  (`handoff.hunt.url`) with a hypothesis and context filled in; a person reviews and starts it there.
 
 ## [0.3.3-beta] — 2026-11-20
 

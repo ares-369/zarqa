@@ -67,3 +67,23 @@ is returned inside untrusted-data markers.
 On 2026-11-17, Zarqa to Zarqa: a second instance pulled 199 indicators from the first one's TAXII server through
 the built-in TAXII bridge (bearer token), and looked a value up in it through `zarqa mcp` over stdio; its
 read-only policy allowed 8 of 9 tools and blocked `ask`.
+
+## Hand a hunt over to a hunting tool
+
+Actors, malware, tools, campaigns, CVEs and reports get a "Hunt this in ..." button when a hunting tool is
+configured:
+
+```yaml
+handoff:
+  hunt:
+    name: Hunting
+    url: "https://hunt.example.org/#hunts?hypothesis={hypothesis}&context={context}&from={from}"
+```
+
+Zarqa writes a hypothesis ("Look for signs of the malware QuillSpin in our environment: its indicators, the
+techniques reports describe") and a context: stated relations, indicators and techniques named in the same reports
+(marked as a lead, not proof), the techniques ATT&CK lists for it, and the reports. The button opens the link in the
+person's browser with both filled in. Nothing is sent server to server and nothing runs until someone reviews it and
+starts the hunt in the hunting tool. `GET /api/entities/<id>/hunt` and `/api/documents/<id>/hunt` return the same
+hypothesis, context and link.
+

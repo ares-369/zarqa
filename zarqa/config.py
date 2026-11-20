@@ -189,6 +189,8 @@ def load_config() -> Config:
     validate_enrich(data.get("enrich") or {})
     from .intel.inventory import validate as validate_inventory
     validate_inventory(data)
+    from .share.handoff import validate as validate_handoff
+    validate_handoff(data)
     for sec in ("collect", "extract", "intel", "web", "relevance", "mcp"):
         if not isinstance(data.get(sec) or {}, dict):
             raise ValueError(f"{sec}: must be a mapping")
