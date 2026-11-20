@@ -197,6 +197,16 @@ async function docPage(id) {
       h("td", {}, basisBadge(r.basis), " ", observedText(r.observed, r.observed_from)),
       h("td", { class: "small muted" }, r.snippet ? `"${r.snippet}"` : "")))))));
   }
+  const rel = await api(`/api/documents/${d.id}/related`).catch(() => []);
+  if (rel.length) {
+    main.append(section("Related reports", "link-variant",
+      h("p", { class: "muted small" }, "Other reports naming the same things, rarer shared names first. \"Same story\" means the same event covered by another source within a week."),
+      h("table", { class: "wrap cards" }, h("tbody", {}, rel.map((r) => h("tr", {},
+        h("td", {}, h("a", { href: `#doc/${r.document_id}` }, r.title), h("div", { class: "small muted" }, r.source, " ", (r.published || r.fetched || "").slice(0, 10))),
+        h("td", {}, r.same_story ? h("span", { class: "badge lv-OK" }, "same story") : null),
+        h("td", { class: "small" }, r.shared.map((x) => [entLink(x.id, x.display), " "]),
+          r.shared_count > r.shared.length ? h("span", { class: "muted" }, `+${r.shared_count - r.shared.length} more`) : null)))))));
+  }
   main.append(section("Text", "text-long", h("details", {}, h("summary", {}, "Show the collected text"), h("pre", {}, d.text))));
 }
 
@@ -256,6 +266,15 @@ async function entityPage(id) {
       h("td", {}, r.dst === e.id ? h("b", {}, r.dst_display) : entLink(r.dst, r.dst_display, r.dst_type)),
       h("td", {}, basisBadge(r.basis), " ", observedText(r.observed, r.observed_from)),
       h("td", { class: "small muted" }, r.snippet ? `"${r.snippet}" ` : "", h("a", { href: `#doc/${r.document_id}` }, r.title))))))));
+  }
+  const conn = await api(`/api/entities/${e.id}/connections`).catch(() => []);
+  if (conn.length) {
+    main.append(section("Seen with", "graph-outline",
+      h("p", { class: "muted small" }, "Named in the same reports, rarer and more frequent first. Being named together is a lead to read the reports, not a relation; stated relations are marked."),
+      h("table", { class: "wrap cards" }, h("tbody", {}, conn.map((x) => h("tr", {},
+        h("td", {}, entLink(x.id, x.display, x.type)),
+        h("td", { class: "small" }, `${x.documents} report${x.documents > 1 ? "s" : ""}`, " ", x.document_ids.map((d) => [h("a", { href: `#doc/${d}` }, `#${d}`), " "])),
+        h("td", {}, x.relations.map((r) => h("span", { class: "badge" }, r.replace(/_/g, " "))))))))));
   }
   if (["actor", "malware", "tool", "campaign", "cve"].includes(e.type)) {
     const t = await api(`/api/entities/${e.id}/timeline`);

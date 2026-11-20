@@ -331,6 +331,22 @@ def create_app(cfg=None, *, start_scheduler: bool = False) -> Flask:
                                          order=request.args.get("order", "last_seen"),
                                          limit=_int("limit", 100, 1, 500), offset=_int("offset", 0, 0, 10**7)))
 
+    @app.route("/api/documents/<int:doc_id>/related")
+    def document_related(doc_id):
+        from .intel.correlate import related_documents
+        try:
+            return jsonify(related_documents(kstore(), doc_id, limit=_int("limit", 10, 1, 50)))
+        except ValueError:
+            return jsonify({"error": "not found"}), 404
+
+    @app.route("/api/entities/<int:eid>/connections")
+    def entity_connections(eid):
+        from .intel.correlate import connections
+        try:
+            return jsonify(connections(kstore(), eid, limit=_int("limit", 20, 1, 100)))
+        except ValueError:
+            return jsonify({"error": "not found"}), 404
+
     @app.route("/api/entities/<int:eid>/timeline")
     def entity_timeline(eid):
         from .intel.timeline import timeline

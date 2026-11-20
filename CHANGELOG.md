@@ -12,6 +12,9 @@ All notable changes are listed here. The format follows
   copies"). On AnnoCTR reports not used for tuning, name F1 rose from 0.18-0.28 to 0.57-0.69 and technique F1 from
   0.11-0.45 to 0.25-0.52 (docs/benchmarks.md).
 - AnnoCTR benchmark: `--split dev|train`; gold technique IDs are mapped to current ATT&CK IDs before scoring.
+- Correlation: each report lists related reports (shared names weighted by rarity) and marks the same story told
+  by other sources within a week; each entity lists what it is seen with, with the reports as evidence
+  (docs/correlation.md). Co-mentions are not used as investigation evidence.
 
 ## [0.3.3-beta] — 2026-11-20
 
