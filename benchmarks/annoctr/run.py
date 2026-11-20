@@ -38,9 +38,11 @@ from pathlib import Path
 NAME_TYPES = ("MALWARE", "GROUP", "TOOL")
 
 
-def gold(data: Path) -> dict[str, dict]:
+def gold(data: Path, split: str = "test") -> dict[str, dict]:
     docs: dict[str, dict] = defaultdict(lambda: {"names": {}, "tech": set()})
-    for line in (data / "linking_mitre_only" / "test.jsonl").read_text(encoding="utf-8").splitlines():
+    for line in (data / "linking_mitre_only" / f"{split}.jsonl").read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
         r = json.loads(line)
         d = docs[r["document"]]
         if r["entity_type"] in NAME_TYPES:
@@ -48,7 +50,10 @@ def gold(data: Path) -> dict[str, dict]:
         elif r["entity_type"] == "TECHNIQUE":
             m = re.search(r"/techniques/(T\d{4})(?:/(\d{3}))?", r["label_link"])
             if m:
-                d["tech"].add(m.group(1) + (f".{m.group(2)}" if m.group(2) else ""))
+                tid = m.group(1) + (f".{m.group(2)}" if m.group(2) else "")
+                from zarqa.intel import attack
+                cur = attack.technique(tid)            # gold uses older ATT&CK: map retired IDs to current ones
+                d["tech"].add(cur["id"] if cur else tid)
     return dict(docs)
 
 
@@ -132,6 +137,8 @@ def main() -> int:
     ap.add_argument("--data", required=True, help="the AnnoCTR folder (with text/ and linking_mitre_only/)")
     ap.add_argument("--model", default="", help="provider:model for the extractor role, e.g. ollama:qwen2.5-coder:7b")
     ap.add_argument("--base-url", default="")
+    ap.add_argument("--split", default="test", choices=["test", "dev", "train"],
+                    help="which AnnoCTR split (the phrase list was tuned on test; dev and train are unseen)")
     ap.add_argument("--limit", type=int, default=0, help="only the first N documents")
     ap.add_argument("--start", type=int, default=0, help="skip the first N documents (to finish an interrupted run)")
     ap.add_argument("--out", default="")
@@ -144,7 +151,7 @@ def main() -> int:
         if a.out:
             Path(a.out).write_text(json.dumps(res, indent=2))
         return 0
-    g = gold(data)
+    g = gold(data, a.split)
     names = sorted(g)[a.start:][: a.limit or None]
     home = Path(tempfile.mkdtemp(prefix="zarqa-bench-"))
     import yaml
@@ -171,7 +178,7 @@ def main() -> int:
     returned = kept = 0
     drop_reasons: Counter = Counter()
     for i, doc in enumerate(names, 1):
-        text = (data / "text" / "test" / f"{doc}.txt").read_text(encoding="utf-8", errors="replace")
+        text = (data / "text" / a.split / f"{doc}.txt").read_text(encoding="utf-8", errors="replace")
         d = st.add_document(source="annoctr", kind="text", text=text, title=doc)
         r = process_documents(c, [d["id"]], store=st)[0]
         m = r.get("model") or {}
@@ -192,7 +199,7 @@ def main() -> int:
         per_doc.append({"document": doc, "pred_names": sorted(pred_names), "gold_names": sorted(g[doc]["names"]),
                         "pred_tech": sorted(pred_tech), "gold_tech": sorted(g[doc]["tech"]), "model_errors": m.get("errors")})
         print(f"[{i}/{len(names)}] {doc[:60]:60} names tp/fp/fn {s['names']}  tech {s['tech_parent']}", flush=True)
-    res = {"dataset": "AnnoCTR test", "documents": len(names), "config": {"model": a.model or "none (rules and ATT&CK names)"},
+    res = {"dataset": f"AnnoCTR {a.split}", "documents": len(names), "config": {"model": a.model or "none (rules and ATT&CK names)"},
            "names": prf(*tot["names"]), "techniques_exact": prf(*tot["tech"]), "techniques_parent": prf(*tot["tech_parent"]),
            "model_calls": calls, "documents_with_model_errors": model_errors,
            "grounding": {"returned": returned, "kept": kept, "dropped": returned - kept,

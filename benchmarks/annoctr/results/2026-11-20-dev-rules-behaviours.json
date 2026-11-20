@@ -1,0 +1,538 @@
+{
+  "dataset": "AnnoCTR dev",
+  "documents": 16,
+  "config": {
+    "model": "none (rules and ATT&CK names)"
+  },
+  "names": {
+    "tp": 40,
+    "fp": 6,
+    "fn": 30,
+    "precision": 0.87,
+    "recall": 0.571,
+    "f1": 0.69
+  },
+  "techniques_exact": {
+    "tp": 14,
+    "fp": 50,
+    "fn": 115,
+    "precision": 0.219,
+    "recall": 0.109,
+    "f1": 0.145
+  },
+  "techniques_parent": {
+    "tp": 23,
+    "fp": 34,
+    "fn": 106,
+    "precision": 0.404,
+    "recall": 0.178,
+    "f1": 0.247
+  },
+  "model_calls": 0,
+  "documents_with_model_errors": 0,
+  "grounding": {
+    "returned": 0,
+    "kept": 0,
+    "dropped": 0,
+    "dropped_share": null,
+    "reasons": {}
+  },
+  "seconds": 9,
+  "per_document": [
+    {
+      "document": "intel471_2021-04-19_china-cybercrime-big-data-privacy",
+      "pred_names": [],
+      "gold_names": [],
+      "pred_tech": [
+        "T1588.007"
+      ],
+      "gold_tech": [
+        "T1199"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "intel471_2021-04-26_financial-cybercrime-2021-jackpotting-atm",
+      "pred_names": [
+        "Emotet"
+      ],
+      "gold_names": [
+        "Emotet"
+      ],
+      "pred_tech": [
+        "T1056.001",
+        "T1218.002"
+      ],
+      "gold_tech": [
+        "T1056",
+        "T1078",
+        "T1105",
+        "T1113",
+        "T1189"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "intel471_2021-05-10_darkside-ransomware-colonial-pipeline-attack",
+      "pred_names": [
+        "BloodHound",
+        "Cobalt Strike",
+        "Dridex",
+        "Mimikatz",
+        "TrickBot"
+      ],
+      "gold_names": [
+        "BloodHound",
+        "Cobalt Strike",
+        "DarkSide",
+        "Dirdex",
+        "KPOT",
+        "Metasploit",
+        "Mimikatz",
+        "Tor",
+        "Zloader"
+      ],
+      "pred_tech": [
+        "T1021.001",
+        "T1059.001",
+        "T1087.002",
+        "T1110"
+      ],
+      "gold_tech": [
+        "T1059",
+        "T1078",
+        "T1110",
+        "T1189",
+        "T1190",
+        "T1486",
+        "T1499",
+        "T1566",
+        "T1567"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "intel471_2021-05-14_darkside-ransomware-shut-down-revil",
+      "pred_names": [
+        "Avaddon",
+        "Babuk",
+        "REvil"
+      ],
+      "gold_names": [
+        "Babuk",
+        "DarkSide",
+        "REvil"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1189",
+        "T1486"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "lab52_2020-05-14_the-energy-reserves-in-the",
+      "pred_names": [
+        "BloodHound",
+        "Cobalt Strike",
+        "Leviathan",
+        "Mimikatz",
+        "Net",
+        "PlugX",
+        "QuasarRAT",
+        "ipconfig",
+        "menuPass"
+      ],
+      "gold_names": [
+        "BloodHound",
+        "Cobalt Strike",
+        "Kerberos",
+        "Mimikatz",
+        "Net",
+        "Ping",
+        "PlugX",
+        "PsExec",
+        "QuasarRAT",
+        "ipconfig",
+        "menuPass",
+        "smbexec",
+        "whoami.exe",
+        "wmic.exe",
+        "wmiexec"
+      ],
+      "pred_tech": [
+        "T1047",
+        "T1059.001",
+        "T1087.002",
+        "T1505.003",
+        "T1569.002"
+      ],
+      "gold_tech": [
+        "T1003",
+        "T1018",
+        "T1033",
+        "T1041",
+        "T1055",
+        "T1071",
+        "T1090",
+        "T1105",
+        "T1135",
+        "T1190",
+        "T1550"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "lab52_2020-06-02_mustang-panda-recent-activity-dll",
+      "pred_names": [
+        "Cobalt Strike",
+        "Mustang Panda",
+        "PlugX",
+        "Threat Group-3390"
+      ],
+      "gold_names": [
+        "APT1",
+        "Cobalt Strike",
+        "Emissary Panda",
+        "Mustang Panda",
+        "PlugX"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1001",
+        "T1036",
+        "T1055",
+        "T1071",
+        "T1083",
+        "T1140",
+        "T1203",
+        "T1574"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "lab52_2020-06-09_recent-fk-undead-rootkit-samples",
+      "pred_names": [],
+      "gold_names": [
+        "FK_Undead"
+      ],
+      "pred_tech": [
+        "T1027"
+      ],
+      "gold_tech": [
+        "T1014",
+        "T1027",
+        "T1036",
+        "T1041",
+        "T1049",
+        "T1071",
+        "T1105",
+        "T1497",
+        "T1557",
+        "T1614",
+        "T1629",
+        "T1685"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "proofpoint_2021-09-29_ta544-targets-italian-organizations-ursnif",
+      "pred_names": [
+        "Dridex",
+        "Emotet",
+        "Ursnif"
+      ],
+      "gold_names": [
+        "Dridex",
+        "Emotet",
+        "TA544",
+        "Ursnif"
+      ],
+      "pred_tech": [
+        "T1036"
+      ],
+      "gold_tech": [
+        "T1056",
+        "T1059",
+        "T1189",
+        "T1204",
+        "T1566"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "proofpoint_2021-10-19_whatta-ta-ta505-ramps-activity",
+      "pred_names": [
+        "Dridex",
+        "FlawedGrace",
+        "ServHelper",
+        "TA505"
+      ],
+      "gold_names": [
+        "Dridex",
+        "FlawedGrace",
+        "Get2",
+        "MirrorBlast",
+        "Rebol Loader",
+        "ReflectiveGnome",
+        "TA505"
+      ],
+      "pred_tech": [],
+      "gold_tech": [
+        "T1027",
+        "T1033",
+        "T1059",
+        "T1105",
+        "T1112",
+        "T1140",
+        "T1204",
+        "T1482",
+        "T1566",
+        "T1571"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "proofpoint_2021-10-20_ta551-uses-sliver-red-team",
+      "pred_names": [
+        "Cobalt Strike",
+        "Egregor",
+        "Emotet",
+        "IcedID",
+        "TA551",
+        "Ursnif"
+      ],
+      "gold_names": [
+        "Cobalt Strike",
+        "Egregor",
+        "Emotet",
+        "IcedID",
+        "Maze",
+        "QBot",
+        "Sliver",
+        "TA551",
+        "Ursnif"
+      ],
+      "pred_tech": [
+        "T1055",
+        "T1134.001"
+      ],
+      "gold_tech": [
+        "T1055",
+        "T1059",
+        "T1071",
+        "T1134",
+        "T1486",
+        "T1566"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "proofpoint_2021-10-27_new-threat-actor-spoofs-philippine",
+      "pred_names": [
+        "NanoCore",
+        "Remcos",
+        "jRAT"
+      ],
+      "gold_names": [
+        "NanoCore",
+        "Remcos",
+        "TA2722"
+      ],
+      "pred_tech": [
+        "T1036",
+        "T1219"
+      ],
+      "gold_tech": [
+        "T1027",
+        "T1204",
+        "T1566",
+        "T1568"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "quoteintelligence_2021-01-27_supply-chain-attacks-cybersecurity-regulations",
+      "pred_names": [
+        "APT29",
+        "Leviathan"
+      ],
+      "gold_names": [
+        "APT40",
+        "Winnti Group"
+      ],
+      "pred_tech": [
+        "T1195",
+        "T1553.002"
+      ],
+      "gold_tech": [
+        "T1190",
+        "T1195",
+        "T1199"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "zscaler_2021-05-21_threat-actors-distribute-malicious-vpn",
+      "pred_names": [
+        "Raccoon Stealer",
+        "Reg",
+        "schtasks"
+      ],
+      "gold_names": [
+        "Lazarus Group",
+        "Raccoon stealer",
+        "Reg",
+        "Sandworm Team"
+      ],
+      "pred_tech": [
+        "T1012",
+        "T1016",
+        "T1027",
+        "T1027.002",
+        "T1036",
+        "T1047",
+        "T1053.005",
+        "T1055",
+        "T1055.012",
+        "T1057",
+        "T1070",
+        "T1070.004",
+        "T1082",
+        "T1083",
+        "T1087",
+        "T1113",
+        "T1124",
+        "T1140",
+        "T1204.002",
+        "T1560.001",
+        "T1566",
+        "T1569",
+        "T1573.001",
+        "T1685"
+      ],
+      "gold_tech": [
+        "T1001",
+        "T1027",
+        "T1036",
+        "T1053",
+        "T1055",
+        "T1059",
+        "T1070",
+        "T1112",
+        "T1140",
+        "T1204",
+        "T1566",
+        "T1574",
+        "T1583",
+        "T1608",
+        "T1685"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "zscaler_2021-07-04_coverage-advisory-kaseya-vsa-supply",
+      "pred_names": [
+        "REvil"
+      ],
+      "gold_names": [
+        "REvil",
+        "certutil"
+      ],
+      "pred_tech": [
+        "T1059.001",
+        "T1195",
+        "T1574.001",
+        "T1686.001"
+      ],
+      "gold_tech": [
+        "T1036",
+        "T1059",
+        "T1105",
+        "T1140",
+        "T1190",
+        "T1195",
+        "T1486",
+        "T1574",
+        "T1685"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "zscaler_2021-07-12_threatlabz-june-2021-report-deconstructing",
+      "pred_names": [
+        "REvil"
+      ],
+      "gold_names": [
+        "MinebridgeRAT",
+        "REvil"
+      ],
+      "pred_tech": [
+        "T1195",
+        "T1574.001"
+      ],
+      "gold_tech": [
+        "T1027",
+        "T1036",
+        "T1053",
+        "T1055",
+        "T1059",
+        "T1105",
+        "T1190",
+        "T1195",
+        "T1203",
+        "T1486",
+        "T1574",
+        "T1685"
+      ],
+      "model_errors": null
+    },
+    {
+      "document": "zscaler_2021-07-14_targeted-attack-government-organizations-delivers",
+      "pred_names": [
+        "APT33"
+      ],
+      "gold_names": [
+        "APT33",
+        "Gorgon Group",
+        "NETWIRE"
+      ],
+      "pred_tech": [
+        "T1036",
+        "T1055",
+        "T1055.012",
+        "T1056",
+        "T1056.001",
+        "T1059.001",
+        "T1059.005",
+        "T1074",
+        "T1082",
+        "T1105",
+        "T1113",
+        "T1547",
+        "T1555",
+        "T1555.003"
+      ],
+      "gold_tech": [
+        "T1005",
+        "T1016",
+        "T1027",
+        "T1036",
+        "T1041",
+        "T1048",
+        "T1059",
+        "T1090",
+        "T1106",
+        "T1112",
+        "T1140",
+        "T1204",
+        "T1497",
+        "T1566",
+        "T1594",
+        "T1620",
+        "T1685"
+      ],
+      "model_errors": null
+    }
+  ]
+}

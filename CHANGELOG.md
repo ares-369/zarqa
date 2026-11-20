@@ -5,6 +5,14 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Extraction without a model now finds ATT&CK software names (malware and tools, except names that are ordinary
+  words), technique names written out, and common behaviour wordings ("dumped LSASS memory", "deleted volume shadow
+  copies"). On AnnoCTR reports not used for tuning, name F1 rose from 0.18-0.28 to 0.57-0.69 and technique F1 from
+  0.11-0.45 to 0.25-0.52 (docs/benchmarks.md).
+- AnnoCTR benchmark: `--split dev|train`; gold technique IDs are mapped to current ATT&CK IDs before scoring.
+
 ## [0.3.3-beta] — 2026-11-20
 
 ### Fixed

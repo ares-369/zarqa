@@ -78,6 +78,14 @@ def process(store: KnowledgeStore, doc_id: int, *, cfg=None, llm=None, use_model
             continue
         store.add_mention(e["id"], doc_id, method="dictionary", snippet=snippet(text, hit["matched"]))
         out["dictionary"] += 1
+    from .behaviours import find_techniques
+    for hit in find_techniques(text):
+        try:
+            e = store.upsert_entity("technique", hit["id"], confidence=confidence)
+        except ValueError:
+            continue
+        store.add_mention(e["id"], doc_id, method="dictionary", snippet=snippet(text, hit["matched"]))
+        out["dictionary"] += 1
 
     want_model = s["model"] if use_model is None else use_model
     if want_model and llm is not None and use_model is None and s["model_max_per_day"]:

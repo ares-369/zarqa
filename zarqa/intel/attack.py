@@ -109,17 +109,23 @@ _COMMON = {"group", "power", "agent", "cobalt", "mimic", "sharp", "ghost", "shel
            "phoenix", "orange", "volt", "sandworm team"}
 
 
+# Software names that are ordinary English words: matched by the model only, never by word search.
+_COMMON_SOFTWARE = frozenset(["agenda", "anchor", "andromeda", "apostle", "appleseed", "aurora", "avenger", "backspace", "biscuit", "bookworm", "bumblebee", "calendar", "cannon", "canopy", "carbon", "chaos", "chopstick", "covenant", "crimson", "crutch", "deadwood", "denis", "disco", "donut", "driftwood", "dustpan", "elise", "elmer", "embargo", "emissary", "empire", "expand", "explosive", "ferocious", "flame", "flamer", "gazer", "havoc", "james", "kevin", "lucifer", "lurid", "machete", "mango", "medusa", "meteor", "milan", "minibike", "minibus", "mosquito", "mythic", "nebulae", "nightclub", "ninja", "octopus", "pacemaker", "pandora", "peppy", "photo", "plead", "powerless", "prestige", "proton", "raindrop", "ramsay", "reptile", "route", "rover", "royal", "ruler", "samurai", "sardonic", "scorpion", "shark", "shipshape", "sliver", "snake", "solar", "soldier", "spaceship", "spark", "spica", "sunspot", "supernova", "teardrop", "trailblazer", "trinity", "uppercut", "vermin", "viper", "windshield", "wiper"])
+
+
 @lru_cache(maxsize=1)
 def _scan_re() -> re.Pattern | None:
-    """Group and campaign names and aliases (case-sensitive, whole words) for scanning free text.
-    Software names are left to the model: many are ordinary words or tool names."""
+    """Group, campaign and software names and aliases (case-sensitive, whole words) for scanning free text.
+    Software names that are ordinary words ("Empire", "Royal", "Havoc") are left to the model."""
     d = data()
     names = set()
-    for table in ("groups", "campaigns"):
+    for table in ("groups", "campaigns", "software"):
         for v in d[table].values():
             for n in [v["n"], *v.get("a", [])]:
-                if len(n) >= _MIN_LEN and n.lower() not in _COMMON:
-                    names.add(n)
+                low = n.lower()
+                if len(n) < _MIN_LEN or low in _COMMON or (table == "software" and low in _COMMON_SOFTWARE):
+                    continue
+                names.add(n)
     if not names:
         return None
     alt = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
@@ -127,7 +133,7 @@ def _scan_re() -> re.Pattern | None:
 
 
 def find_names(text: str) -> list[dict]:
-    """Known group and campaign names in ``text``: [{kind, id, name, matched}] (each id once)."""
+    """Known group, campaign and software names in ``text``: [{kind, id, name, matched}] (each id once)."""
     rx = _scan_re()
     if rx is None:
         return []

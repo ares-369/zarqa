@@ -101,10 +101,52 @@ TA456, which current ATT&CK lists under CURIUM while the 2021 annotations link i
 annotated as Tor and 5 "Netwire" annotated as Remcos. What stays unresolved is mostly names ATT&CK does not list
 (vendor tracking names such as TA406 and TA415, organisations such as GRU and FSB) and "Beacon" for Cobalt Strike.
 
-### What this says
+### Results (2026-11-20): technique names, behaviour phrases and software names, no model
 
-- **Without a model, Zarqa rarely says something wrong, and misses most of what is there.** It finds names and
-  technique IDs only when they are written out (an ATT&CK group name or alias, `T1566`).
+Three deterministic additions, measured on the same 34 test reports with no model:
+
+* ATT&CK technique names written out in the text ("Process Hollowing", "Password Spraying");
+* a curated list of behaviour phrases ("dumped LSASS memory" -> T1003.001, "deleted volume shadow copies" ->
+  T1490, "side-loaded a malicious DLL" -> the DLL technique); see `zarqa/intel/behaviours.py`;
+* ATT&CK software names (malware and tools), except 93 that are ordinary English words ("Empire", "Royal").
+
+The scorer now maps the gold labels' ATT&CK IDs to current ones (AnnoCTR predates a renumbering: five labels
+used a retired ID), so the baseline is scored again the same way:
+
+| | Before (rules only) | After | Change |
+|---|---|---|---|
+| Names precision | 0.917 (11 of 12) | 0.900 (45 of 50) | -0.017 |
+| Names recall | 0.107 (11 of 103) | **0.437 (45 of 103)** | x4 |
+| Names F1 | 0.191 | **0.588** | |
+| Techniques (parent) precision | 0.972 | 0.904 | -0.068 |
+| Techniques (parent) recall | 0.310 | **0.398** | +0.088 |
+| Techniques (parent) F1 | 0.470 | **0.552** | |
+| Techniques (exact) precision | 0.767 | 0.601 | -0.166 |
+
+The phrase list and the excluded names were tuned on the test reports, so the same before/after comparison was run
+on the dev and train splits, which were not looked at (`--split dev`, `--split train`):
+
+| Split (reports) | Names P / R / F1 before | after | Techniques (parent) P / R / F1 before | after |
+|---|---|---|---|---|
+| test (34, tuned on) | 0.92 / 0.11 / 0.19 | 0.90 / 0.44 / **0.59** | 0.97 / 0.31 / 0.47 | 0.90 / 0.40 / **0.55** |
+| dev (16, unseen) | 0.78 / 0.10 / 0.18 | 0.87 / 0.57 / **0.69** | 0.35 / 0.06 / 0.11 | 0.40 / 0.18 / **0.25** |
+| train (67, unseen) | 0.89 / 0.17 / 0.28 | 0.81 / 0.44 / **0.57** | 0.91 / 0.30 / 0.45 | 0.77 / 0.40 / **0.52** |
+
+On unseen reports, name recall still roughly triples and F1 rises on every split; technique precision on the train
+split falls from 0.91 to 0.77, the price of the extra recall. (The dev split has few technique labels, which
+explains its low technique scores before and after.)
+
+Without any model, name recall is now higher than the 7B model gave before (0.31), at much better precision
+(0.90 against 0.67). Most of the drop in exact technique precision is a sub-technique named where the annotators
+labelled only the parent (T1059.001 against T1059). Noisy entries were removed by looking at the false hits on
+this set (everyday phrases such as "social media", "IP addresses", "VPN", and "sandbox detection", which in
+reports usually means a sandbox detected the malware); the phrase list was tuned on this test set, so the numbers
+are somewhat optimistic for unseen reports.
+
+
+- **Without a model, Zarqa rarely says something wrong.** Since 2026-11-20 it also finds software names, technique
+  names and common behaviour wordings, which roughly quadruples name recall; it still misses most behaviour that is
+  described in a way the phrase list does not know.
 - **A small local model helps with names, not techniques.** On the current code it more than doubles name recall
   (0.13 to 0.31) at a cost in precision (1.00 to 0.67), and leaves technique recall where the rules have it. We looked at
   its replies on two reports:
@@ -119,7 +161,8 @@ annotated as Tor and 5 "Netwire" annotated as Remcos. What stays unresolved is m
 
 ### Not measured yet
 
-- the last 8 reports with the 7B model on the current code (`--start 26`);
+- the 7B model on top of the 2026-11-20 rules (all 34 reports);
+- the phrase list on reports it was not tuned on;
 - a stronger model on the same set;
 - indicator extraction (AnnoCTR does not annotate indicators);
 - relevance ranking, investigations and the brand watch, beyond the spot checks in their own pages.
