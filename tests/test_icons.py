@@ -28,3 +28,9 @@ def test_font_is_small():
     fonts = list((ROOT / "zarqa/static/mdi/fonts").iterdir())
     assert [f.name for f in fonts] == ["icons.woff2"]
     assert fonts[0].stat().st_size < 50_000
+
+
+def test_no_inline_styles_in_the_ui():
+    """The Content Security Policy (style-src 'self') blocks inline style attributes, so they silently do nothing."""
+    js = (ROOT / "zarqa/static/app.js").read_text()
+    assert not re.search(r"\bstyle:\s*[\"'`]", js)

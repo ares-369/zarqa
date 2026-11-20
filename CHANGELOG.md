@@ -9,6 +9,8 @@ All notable changes are listed here. The format follows
 
 - Relations without a model: a found name, a relation verb and another found name in one sentence
   ("Qilin exploited CVE-2026-0257") become a stated relation with the sentence as its quote.
+- CI: a UI smoke test opens every page of the demo in headless Chromium (desktop and phone width) and fails on
+  script errors, failed requests or "undefined" on screen.
 - Intel page: reports of the same event from several sources are folded under one line ("group same story").
 - MCP/investigation tool `search_documents`: `min_relevance` and `days` filters; each result says why it is relevant
   here and what it names (so a hunting tool can turn it into a hypothesis).
@@ -17,6 +19,8 @@ All notable changes are listed here. The format follows
 
 ### Fixed
 
+- Timeline: the date column fix in 0.3.1 used an inline style, which the Content Security Policy blocks; it now
+  uses a stylesheet class. Found by the new UI smoke test.
 - Version numbers written like addresses ("FileVersion: 7.2.9.0", a User-Agent's "WinHttp/1.6.4.0", "prior to
   8.4.2.3", lists of builds) are no longer extracted as IPv4 indicators.
 

@@ -69,3 +69,4 @@ table.cards,.cards tbody,.cards tr,.cards td{display:block;width:100%}.cards the
 .rating{font-family:ui-monospace,monospace;font-weight:600}
 button.tg-on{color:var(--green);border-color:var(--green)}button.tg-off{color:var(--grey)}
 label.field{display:flex;flex-direction:column;gap:.25rem;margin:.6rem 0}textarea.short{min-height:4.2rem}.req{border-left:2px solid var(--line);padding:.2rem 0 .2rem .7rem;margin:.5rem 0}.req input.grow{width:100%}
+.nowrap{white-space:nowrap}
