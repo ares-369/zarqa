@@ -5,8 +5,8 @@
 [![CI](https://github.com/ares-369/zarqa/actions/workflows/ci.yml/badge.svg)](https://github.com/ares-369/zarqa/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.10–3.12](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](pyproject.toml)
-[![PyPI](https://img.shields.io/pypi/v/zarqa.svg)](https://pypi.org/project/zarqa/)
-[![Release](https://img.shields.io/github/v/release/ares-369/zarqa?include_prereleases&sort=semver)](https://github.com/ares-369/zarqa/releases)
+[![PyPI](https://img.shields.io/pypi/v/zarqa?cacheSeconds=3600)](https://pypi.org/project/zarqa/)
+[![Release](https://img.shields.io/github/v/release/ares-369/zarqa?include_prereleases&sort=semver&cacheSeconds=3600)](https://github.com/ares-369/zarqa/releases)
 
 **An open-source, AI-powered threat intelligence tool.** Zarqa collects intel from the internet and
 from the threat intel platforms you already use, turns it into structured, sourced intel, ranks it by
