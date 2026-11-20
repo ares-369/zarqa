@@ -251,7 +251,9 @@ def test_process_rules_dictionary_and_model(store):
     rel = store.relations(document_id=d["id"])
     assert len([r for r in rel if r["method"] == "model"]) == 2
     by_rules = {(r["src_display"], r["rel"], r["dst_display"]) for r in rel if r["method"] == "rules"}
-    assert ("HeadLace", "communicates_with", "203.0.113.66") in by_rules      # "...HeadLace, which contacted ..."
+    # "...HeadLace, which contacted hxxps://update-check[.]example-cdn[.]net/api and 203.0.113.66" (the model already
+    # stated the IP one; a relation is stored once per report)
+    assert ("HeadLace", "communicates_with", "update-check.example-cdn.net") in by_rules
 
 
 def test_process_without_model_or_with_a_failing_one(store):
