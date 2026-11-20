@@ -460,3 +460,22 @@ def test_model_daily_cap(tmp_path):
     assert "daily model cap" in r["model_skipped"] and st.document(b)["method"] == "rules (model cap)"
     process(st, b, cfg=cfg, llm=FakeLLM(MODEL_REPLY), use_model=True)       # a person asking still gets the model
     assert st.document(b)["method"] == "rules+model"
+
+
+@pytest.mark.parametrize("text,want", [
+    ("WinHttp/1.6.4.0 (WinHTTP/5.1) like Gecko", []),
+    ('$camo_ver = "14.10.1.0" ascii wide', []),
+    ("17.0.6 to 17.0.21 (fixed released: 17.0.21.1)", []),
+    ("Struts 2.3.19 to 2.3.20.2, 2.3.21 to 2.3.24.1, and", []),
+    ("builds 26.8.3.41, 26.7.7.30, 26.6.5.55 and 26.3.32.8.", []),
+    ("Control Center Datacenter 4.0.0.2 and earlier", []),
+    ("Prior to 8.4.2.3", []),
+    ("FileVersion: 7.2.9.0", []),
+    ("public DNS servers such as 8.8.8.8, 1.1.1.1, and 1.0.0.1.", ["8.8.8.8", "1.1.1.1", "1.0.0.1"]),
+    ("The loader beaconed to 203.0.113.80 and then to 198.51.100.7.", ["203.0.113.80", "198.51.100.7"]),
+    ("Before contacting 45.150.32.130, it slept.", ["45.150.32.130"]),
+    ("C2 server (version 2 of the panel) at 45.150.32.131", ["45.150.32.131"]),
+])
+def test_versions_are_not_addresses(text, want):
+    from zarqa.intel.extract import extract
+    assert extract(text).get("ipv4", []) == want

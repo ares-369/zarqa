@@ -82,6 +82,26 @@ def _ok_domain(d: str) -> bool:
     return tld not in _FILE_EXT and not d.replace(".", "").isdigit()
 
 
+# Words before a dotted number that make it a version, not an address: "version 7.2.9.0", "prior to 8.4.2.3",
+# "builds 26.8.3.41, 26.7.7.30 and 26.3.32.8", "FileVersion: 7.2.9.0", "fixed released: 21.0.13.1".
+_VERSION_BEFORE = re.compile(
+    r"(?i)(?:\b(?:versions?|ver|v|builds?|releases?|released|fixed(?:\s+in)?|firmware|fileversion|productversion|"
+    r"prior\s+to|earlier\s+than|older\s+than|upgrade\s+to|update\s+to|patched\s+in)\b[:=\s\"'(]*"
+    r"(?:[\dv.]+[a-z]*\d*[\s,]*(?:and|or|to|through|-)?\s*)*"
+    r"|ver\w*\s*=\s*[\"']"                     # a rule or script variable: $file_ver = "14.10.1.0"
+    r"|[A-Za-z]/"                               # product/version, as in a User-Agent: WinHttp/1.6.4.0
+    r"|\d+(?:\.\d+)+\s+(?:to|through|-|\u2013)\s*"  # the end of a version range: 2.3.19 to 2.3.20.2
+    r")$")
+_VERSION_AFTER = re.compile(r"(?i)^\s*(?:\)?\s*)?(?:and|or)\s+(?:earlier|later|prior|older|newer|above|below|before|"
+                            r"lower|higher)\b|^\s*(?:to|through)\s+\d+\.\d+")
+
+
+def version_context(text: str, start: int, end: int) -> bool:
+    """Is the dotted number at text[start:end] a version (by the words around it) rather than an IPv4 address?"""
+    before = text[max(0, start - 80):start].split("\n")[-1]
+    return bool(_VERSION_BEFORE.search(before) or _VERSION_AFTER.match(text[end:end + 30]))
+
+
 def extract(text: str) -> dict[str, list[str]]:
     """Return ``{type: [values]}`` found in ``text`` (deduplicated, in order)."""
     t = refang(text or "")
@@ -105,6 +125,9 @@ def extract(text: str) -> dict[str, list[str]]:
             if inside(m.span()):
                 continue
             if kind == "ipv6" and not _is_v6(m.group(0)):
+                continue
+            if kind == "ipv4" and version_context(t, m.start(), m.end()):
+                taken.append(m.span())          # a version number written like an address, not an indicator
                 continue
             add(kind, m.group(0), m.span())
     for m in _RE["domain"].finditer(t):
