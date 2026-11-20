@@ -46,6 +46,16 @@ data, and the model is told never to follow instructions in it. Prompts to cloud
 If the model fails (not reachable, bad reply), the rules and dictionary results stay and the document is
 marked `rules (model failed)`.
 
+## Relations without a model
+
+After the other steps, Zarqa looks in each sentence for a name it already found, a relation verb, and another
+found name: "Qilin exploited CVE-2026-0257" (exploits), "Latrodectus established a connection to
+193.168.143.196" (communicates with), "used PsExec to deploy Cobalt Strike" (drops). Types must fit (only malware
+or tools communicate with addresses; only CVEs are exploited), the subject must come before the verb and the
+object after it, and sentences with a negation ("no evidence that ... exploited") are skipped. The sentence is the
+quote and the relation is "stated". On the live collection (275 reports) this added 7 relations, most of them
+right; it misses relations written with "the group" or "they" instead of a name, by design.
+
 ## Daily model cap
 
 ```yaml

@@ -5,6 +5,16 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Relations without a model: a found name, a relation verb and another found name in one sentence
+  ("Qilin exploited CVE-2026-0257") become a stated relation with the sentence as its quote.
+
+### Fixed
+
+- Version numbers written like addresses ("FileVersion: 7.2.9.0", a User-Agent's "WinHttp/1.6.4.0", "prior to
+  8.4.2.3", lists of builds) are no longer extracted as IPv4 indicators.
+
 ## [0.4.0-beta] — 2026-11-20
 
 ### Added

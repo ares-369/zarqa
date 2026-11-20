@@ -37,6 +37,28 @@ def model_runs_today(store: KnowledgeStore) -> int:
                              "'%model failed%' AND extracted >= ?", (since,)).fetchone()[0])
 
 
+def _rule_relations(store: KnowledgeStore, doc_id: int, text: str) -> int:
+    """Relations stated in one sentence between names already found in this document (see rule_relations.py)."""
+    from .rule_relations import find_relations
+    ents: dict[int, dict] = {}
+    for m in store.mentions(document_id=doc_id, limit=5000):
+        if m["type"] in ("technique", "sector", "country", "md5", "sha1", "sha256", "email"):
+            continue
+        e = ents.setdefault(m["entity_id"], {"id": m["entity_id"], "type": m["type"], "surfaces": set()})
+        e["surfaces"].update({m["display"], m["value"]})
+        if m["type"] in ("actor", "malware", "tool", "campaign"):
+            hit = attack.lookup(m["display"])
+            ref = attack.known(hit["id"]) if hit else None
+            e["surfaces"].update((ref or {}).get("a", []))
+            if ref:
+                e["surfaces"].add(ref.get("n", ""))
+    found = find_relations(text, [{**e, "surfaces": sorted(x for x in e["surfaces"] if x)} for e in ents.values()])
+    n = 0
+    for r in found:
+        n += bool(store.add_relation(r["src"], r["rel"], r["dst"], doc_id, method="rules", snippet=r["quote"]))
+    return n
+
+
 def _strict(doc: dict, mode) -> bool:
     if mode in (True, False):
         return bool(mode)
@@ -129,6 +151,7 @@ def process(store: KnowledgeStore, doc_id: int, *, cfg=None, llm=None, use_model
         method = "rules+model" if not r["errors"] or r["items"] else "rules (model failed)"
     else:
         method = "rules (model cap)" if out.get("model_skipped") else "rules"
+    out["rule_relations"] = _rule_relations(store, doc_id, text)
     hits = scan(text)
     if hits:
         out["review"] = "possible prompt injection: " + "; ".join(h["pattern"] for h in hits)

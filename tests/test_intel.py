@@ -248,7 +248,10 @@ def test_process_rules_dictionary_and_model(store):
     assert store.find("ipv4", "10.1.2.3") is None
     # processing again replaces, it does not duplicate
     process(store, d["id"], llm=llm)
-    assert len(store.relations(document_id=d["id"])) == 2
+    rel = store.relations(document_id=d["id"])
+    assert len([r for r in rel if r["method"] == "model"]) == 2
+    by_rules = {(r["src_display"], r["rel"], r["dst_display"]) for r in rel if r["method"] == "rules"}
+    assert ("HeadLace", "communicates_with", "203.0.113.66") in by_rules      # "...HeadLace, which contacted ..."
 
 
 def test_process_without_model_or_with_a_failing_one(store):
