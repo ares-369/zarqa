@@ -5,6 +5,8 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0-beta] — 2026-11-23
+
 ### Added
 
 - Relations without a model: a found name, a relation verb and another found name in one sentence
@@ -26,6 +28,8 @@ All notable changes are listed here. The format follows
 
 ### Security
 
+- Cross-origin state-changing requests are refused in every auth mode (before: only local and OIDC). Behind a proxy
+  that does not pass the public host name, set the external URL.
 - Article links are clickable only for http(s) addresses; a non-ASCII token or password is refused instead of failing.
 
 ## [0.4.0-beta] — 2026-11-20

@@ -277,6 +277,9 @@ def init_auth(app, cfg) -> None:
                 g.zarqa_user = "mcp-token"
                 g.zarqa_groups = parse_groups(mc.get("token_groups") or [])
                 return None
+        if request.method in ("POST", "PUT", "DELETE", "PATCH") and not _origin_matches_request(cfg):
+            # Every mode: a browser also attaches proxy cookies and basic credentials, and reaches a local instance.
+            return Response("Forbidden: cross-origin state-changing request blocked (CSRF guard).", 403)
         if mode == "none":
             return None
         if p.startswith("/static/") or p in _OPEN_PATHS:
@@ -334,8 +337,6 @@ def init_auth(app, cfg) -> None:
         # local / oidc -> session
         user = session.get("user")
         if user:
-            if request.method in ("POST", "PUT", "DELETE", "PATCH") and not _origin_matches_request(cfg):
-                return Response("Forbidden: cross-origin state-changing request blocked (CSRF guard).", 403)
             groups = user_groups(cfg, str(user), session.get("groups") or [])
             role = session.get("role") or resolve_user_role(cfg, str(user), groups)
             if not role:
