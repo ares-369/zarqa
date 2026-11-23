@@ -206,3 +206,12 @@ def test_inventory_token_env_is_checked(home):
     write_cfg(home, lambda d: d.update(inventory={"token_env": "bad name"}))
     with pytest.raises(ValueError, match=r"inventory\.token_env"):
         config.load_config()
+
+
+def test_inventory_token_survives_non_ascii(monkeypatch):
+    from types import SimpleNamespace
+
+    from zarqa.intel.inventory import token_ok
+    monkeypatch.setenv("INV_TOK", "good")
+    cfg = SimpleNamespace(raw={"inventory": {"token_env": "INV_TOK"}})
+    assert token_ok(cfg, "Bearer good") and not token_ok(cfg, "Bearer \xe9\xff") and not token_ok(cfg, "Bearer ")

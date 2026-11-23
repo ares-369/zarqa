@@ -111,5 +111,5 @@ def token_ok(cfg) -> bool:
     env = str(((cfg.raw or {}).get("share") or {}).get("taxii_token_env", "") or "")
     tok = os.getenv(env, "") if env else ""
     got = request.headers.get("Authorization", "")
-    return bool(tok) and got.startswith("Bearer ") and hmac.compare_digest(got[7:].strip(), tok)
+    return bool(tok) and got.startswith("Bearer ") and hmac.compare_digest(got[7:].strip().encode(), tok.encode())
 

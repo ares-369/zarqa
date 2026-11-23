@@ -24,6 +24,10 @@ All notable changes are listed here. The format follows
 - Version numbers written like addresses ("FileVersion: 7.2.9.0", a User-Agent's "WinHttp/1.6.4.0", "prior to
   8.4.2.3", lists of builds) are no longer extracted as IPv4 indicators.
 
+### Security
+
+- Article links are clickable only for http(s) addresses; a non-ASCII token or password is refused instead of failing.
+
 ## [0.4.0-beta] — 2026-11-20
 
 ### Added

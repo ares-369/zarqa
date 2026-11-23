@@ -174,7 +174,7 @@ async function docPage(id) {
   d.mentions.forEach((m) => { if (m.context) ctx[m.entity_id] = m.context; });
   main.append(section(d.title || "Document", "file-document-outline",
     h("div", { class: "small muted" }, `${d.source} | ${d.kind} | source reliability ${d.reliability || "F"} | collected ${when(d.fetched)}`, d.published ? ` | published ${d.published}` : ""),
-    d.url ? h("div", { class: "small" }, h("a", { href: d.url, rel: "noopener noreferrer", target: "_blank" }, d.url)) : null,
+    d.url ? h("div", { class: "small" }, /^https?:\/\//i.test(d.url) ? h("a", { href: d.url, rel: "noopener noreferrer", target: "_blank" }, d.url) : d.url) : null,
     h("div", { class: "row" }, h("span", { class: "badge st-" + d.status }, d.status), d.method ? methodBadge(d.method) : null,
       h("button", { "data-need": "op", class: "ghost", onclick: async () => { await post(`/api/documents/${id}/process`); toast("Processing; refresh in a moment."); } }, icon("refresh"), "Process again"),
       h("a", { href: `/api/export/stix?document=${id}&download=1` }, h("button", { class: "ghost" }, icon("download"), "STIX")),
