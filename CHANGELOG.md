@@ -5,6 +5,8 @@ All notable changes are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.5.1-beta] — 2026-11-24
+
 ### Added
 
 - An assistant panel opens from the title bar (Ctrl+I) on every page.
