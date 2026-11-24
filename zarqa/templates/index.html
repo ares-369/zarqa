@@ -1,32 +1,57 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-product="zarqa" data-theme="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ name }}</title>
 <link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
+<script src="/static/theme.js"></script>
 <link rel="stylesheet" href="/static/mdi/css/icons.css">
 <link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/suite.css">
 </head>
-<body>
-<header>
-  <span class="brand"><img class="logo" src="/static/img/logo.svg" alt="">{{ name }}<span class="muted ver">v{{ version }}</span></span>
-  <nav id="nav">
+<body data-quick="overview intel entities ask" data-name="{{ name }}">
+<div class="shell" id="shell">
+<div class="scrim" id="scrim"></div>
+<aside class="rail" id="rail">
+  <a class="brand" href="/"><img class="logo" src="/static/img/logo.svg" alt=""><span class="brand-text">{{ name }}<span class="ver">v{{ version }}</span></span></a>
+  <nav id="nav" aria-label="Pages">
+    <div class="nav-group">Investigate</div>
     <a href="#overview" data-tab="overview"><span class="mdi mdi-view-dashboard-outline"></span><span class="lbl">Overview</span></a>
     <a href="#intel" data-tab="intel"><span class="mdi mdi-newspaper-variant-outline"></span><span class="lbl">Intel</span></a>
     <a href="#entities" data-tab="entities"><span class="mdi mdi-tag-multiple-outline"></span><span class="lbl">Entities</span></a>
     <a href="#ask" data-tab="ask"><span class="mdi mdi-chat-question-outline"></span><span class="lbl">Ask</span></a>
     <a href="#brand" data-tab="brand"><span class="mdi mdi-shield-search"></span><span class="lbl">Brand</span></a>
+    <div class="nav-group">Knowledge</div>
     <a href="#profile" data-tab="profile"><span class="mdi mdi-domain"></span><span class="lbl">Profile</span></a>
     <a href="#sources" data-tab="sources"><span class="mdi mdi-rss"></span><span class="lbl">Sources</span></a>
+    <div class="nav-group">System</div>
     <a href="#connectors" data-tab="connectors"><span class="mdi mdi-connection"></span><span class="lbl">Connectors</span></a>
     <a href="#jobs" data-tab="jobs"><span class="mdi mdi-progress-clock"></span><span class="lbl">Jobs</span></a>
     <a href="#settings" data-tab="settings"><span class="mdi mdi-cog"></span><span class="lbl">Settings</span></a>
   </nav>
-  <span id="me" class="me muted small"></span>
+  <span id="me" class="me small"></span>
+</aside>
+<div class="stage">
+<header class="topbar">
+  <button class="icon-btn" id="menuBtn" type="button" aria-label="Open or close navigation" aria-controls="rail" aria-expanded="false"><span class="mdi mdi-menu"></span></button>
+  <h1 id="pageTitle"></h1><span class="spacer"></span>
+  <button class="icon-btn" id="themeBtn" title="Dark or light theme" type="button" aria-label="Switch between dark and light theme"><span class="mdi mdi-weather-night"></span></button>
+  <button class="icon-btn" id="drawerToggle" type="button" data-need="op" aria-label="Open or close the assistant" aria-expanded="false" title="Assistant (Ctrl+I)"><span class="mdi mdi-robot-outline"></span></button>
 </header>
-{% if demo %}<div class="demo-banner"><span class="mdi mdi-flask-outline"></span> Demo: all data here is fictional sample data, and the "model" is a script, not AI.</div>{% endif %}
+{% if demo %}<div class="demo-banner" role="region" aria-label="Demo notice"><span class="mdi mdi-flask-outline"></span> Demo: all data here is fictional sample data, and the "model" is a script, not AI.</div>{% endif %}
 <main id="main"></main>
-<div id="toast" class="toast hidden"></div>
+</div>
+<aside class="ai-drawer closed" id="aiDrawer" aria-label="Assistant" data-need="op">
+  <div class="drawer-header"><div class="drawer-title"><span class="mdi mdi-robot-outline"></span>Assistant</div><span class="spacer"></span>
+    <button class="icon-btn" id="chatNew" type="button" aria-label="New conversation" title="New conversation"><span class="mdi mdi-plus"></span></button>
+    <button class="icon-btn" id="drawerClose" type="button" aria-label="Close the assistant" title="Close"><span class="mdi mdi-close"></span></button></div>
+  <div class="drawer-messages" id="chatMessages" aria-live="polite"></div>
+  <div class="drawer-input-bar"><textarea id="chatInput" rows="1" placeholder="Ask a question" aria-label="Message the assistant"></textarea>
+    <button id="chatSend" type="button" aria-label="Send message" title="Send"><span class="mdi mdi-send"></span></button></div>
+</aside>
+</div>
+<div id="toast" class="toast hidden" role="status"></div>
 <script src="/static/app.js"></script>
+<script src="/static/suite.js"></script>
 </body>
 </html>

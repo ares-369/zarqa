@@ -120,3 +120,32 @@ def test_pages_fit_a_phone(server):
         b.close()
     assert wide == []
 
+
+
+def test_frame_and_model_save(server):
+    """The rail, the theme switch and Save on the Settings page work."""
+    errors: list[str] = []
+    with sync_api.sync_playwright() as p:
+        b = _browser(p)
+        page = b.new_page(viewport={"width": 1300, "height": 900})
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        page.on("dialog", lambda d: d.dismiss())
+        page.goto(f"{server}/#settings", wait_until="networkidle")
+        page.wait_for_selector("[data-model]")
+        assert page.inner_text("#pageTitle") == "Settings"
+        page.click("#themeBtn")
+        page.reload(wait_until="networkidle")
+        assert page.evaluate("document.documentElement.dataset.theme") == "light"
+        page.locator("[data-model]").first.fill("another-model")
+        with page.expect_response(lambda r: r.url.endswith("/api/settings/llm") and r.request.method == "POST") as info:
+            page.get_by_role("button", name="Save").first.click()
+        assert info.value.status == 200
+        page.set_viewport_size({"width": 412, "height": 915})
+        page.click("#moreBtn")
+        page.wait_for_timeout(400)
+        assert page.locator("#rail").bounding_box()["x"] >= 0
+        page.keyboard.press("Escape")
+        page.click("#drawerToggle")
+        assert page.is_visible("#chatInput")
+        b.close()
+    assert errors == []

@@ -52,7 +52,7 @@ const post = (url, body) => api(url, body || {}, "POST");
 // Buttons marked data-need="op" or "admin" are hidden for roles that cannot use them (the server enforces it too).
 const meReady = api("/api/me").then((m) => {
   document.body.dataset.role = m.role || "viewer";
-  fill($("#me"), icon("account-circle-outline"), " ", m.name || m.user || "local", " ", h("span", { class: "badge" }, m.role));
+  fill($("#me"), icon("account-circle-outline"), h("span", { class: "who" }, m.name || m.user || "local", " ", h("span", { class: "badge" }, m.role)));
 }).catch(() => {});
 
 let poll = null;
@@ -465,7 +465,7 @@ async function inventorySection(productsArea) {
         try { const r = await post("/api/settings/inventory", { source: fl.name.replace(/\.[^.]+$/, ""), content: await fl.text() });
           toast(`Imported ${r.rows} packages on ${r.hosts} hosts. Scoring reports again.`); route(); } finally { e.target.disabled = false; } } }, icon("upload"), "Import"),
       inv.connector ? h("button", { "data-need": "admin", class: "ghost", onclick: async () => { const r = await post("/api/settings/inventory/pull"); toast("Pull started (job " + r.job_id + ")."); } }, icon("download"), "Pull from connector") : null,
-      inv.rows ? h("button", { "data-need": "admin", class: "ghost", onclick: async () => { await post("/api/settings/inventory/clear"); toast("Inventory removed."); route(); } }, icon("delete-outline"), "Remove inventory") : null));
+      inv.rows ? h("button", { "data-need": "admin", class: "ghost", onclick: async () => { if (!confirm("Remove the whole inventory? Relevance will no longer name hosts. You can import it again.")) return; await post("/api/settings/inventory/clear"); toast("Inventory removed."); route(); } }, icon("delete-outline"), "Remove inventory") : null));
 }
 
 // "Hunt this" button: opens the configured hunting tool with the hypothesis and context filled in (nothing runs
@@ -585,7 +585,7 @@ async function settings() {
   });
   const diff = h("pre", { class: "hidden" });
   const testOut = h("pre", { class: "hidden" });
-  const collect = () => Object.fromEntries([...document.querySelectorAll("[data-role]")].map((e) =>
+  const collect = () => Object.fromEntries([...document.querySelectorAll("select[data-role]")].map((e) =>
     [e.dataset.role, { provider: e.value, model: $(`[data-model="${e.dataset.role}"]`).value }]));
   main.append(section("Models", "brain", h("p", { class: "muted small" }, "One provider and model per role. Keys stay in .env. Admins only."), rows,
     h("div", { class: "row" }, h("button", { "data-need": "admin", onclick: async () => {
@@ -615,3 +615,15 @@ async function settings() {
 }
 
 meReady.then(route);
+
+// ---------------- Assistant panel (suite.js draws it) ----------------
+window.SUITE_BOT = {
+  intro: "Ask about the intel collected here. Each question is a new investigation and every claim cites its evidence.",
+  tries: ["What is new that affects us?", "Which vulnerabilities are being exploited right now?"],
+  async send(text, st) { st.id = (await post("/api/investigations", { question: text })).id; return { done: false }; },
+  async poll(st) {
+    const d = await api("/api/investigations/" + st.id);
+    if (["running", "queued"].includes(d.status)) return { done: false, note: `Working on it... ${d.steps.length} step(s) so far.` };
+    return { done: true, text: d.assessment ? d.assessment.answer : d.error || "No answer: " + d.status, links: [["#inv/" + st.id, "Open the evidence"]] };
+  },
+};
